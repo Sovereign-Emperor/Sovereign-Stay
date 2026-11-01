@@ -178,7 +178,7 @@ function illustrativePhotos(listingId, propertyName, photoIds) {
 export const demoListings = [
   {
     id: "greenview-residences",
-    ownerId: "demo-provider-a",
+    propertyId: "property-greenview",
     status: "draft",
     isDemo: true,
     name: "Greenview Student Residences",
@@ -210,7 +210,7 @@ export const demoListings = [
   },
   {
     id: "hilltop-court",
-    ownerId: "demo-provider-a",
+    propertyId: "property-hilltop",
     status: "draft",
     isDemo: true,
     name: "Hilltop Court Hostel",
@@ -242,7 +242,7 @@ export const demoListings = [
   },
   {
     id: "the-palm-house",
-    ownerId: "demo-provider-b",
+    propertyId: "property-palm-house",
     status: "draft",
     isDemo: true,
     name: "The Palm House",
@@ -274,7 +274,7 @@ export const demoListings = [
   },
   {
     id: "campus-edge-lodge",
-    ownerId: "demo-provider-b",
+    propertyId: "property-campus-edge",
     status: "draft",
     isDemo: true,
     name: "Campus Edge Lodge",
@@ -306,7 +306,7 @@ export const demoListings = [
   },
   {
     id: "sunrise-hostel",
-    ownerId: "demo-provider-a",
+    propertyId: "property-sunrise",
     status: "draft",
     isDemo: true,
     name: "Sunrise Hostel",
@@ -338,7 +338,7 @@ export const demoListings = [
   },
   {
     id: "cedar-student-homes",
-    ownerId: "demo-provider-b",
+    propertyId: "property-cedar",
     status: "draft",
     isDemo: true,
     name: "Cedar Student Homes",

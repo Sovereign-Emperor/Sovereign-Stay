@@ -94,7 +94,7 @@ describe("provider dashboard demo routes", () => {
         name: "Greenview Student Residences",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Management is read-only in this milestone/)).toBeInTheDocument();
+    expect(screen.getByText(/Property creation, editing, and saved changes are not enabled/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View listing preview" })).toHaveAttribute(
       "href",
       "/properties/greenview-residences",

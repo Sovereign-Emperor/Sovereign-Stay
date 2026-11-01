@@ -1,4 +1,5 @@
-import { demoListings, demoUsers } from "./properties";
+import { demoUsers } from "./properties";
+import { getDemoListingsForProperty, getDemoPropertiesForProvider } from "./demoPropertyRepository";
 
 export const DEMO_PROVIDER_ID = "demo-provider-a";
 
@@ -27,9 +28,10 @@ export function getDemoProviderWorkspace(providerId) {
     return null;
   }
 
-  const listings = demoListings.filter((listing) => listing.ownerId === providerId);
+  const properties = getDemoPropertiesForProvider(providerId);
+  const listings = properties.flatMap(({ id }) => getDemoListingsForProperty(id));
   const listingIds = new Set(listings.map((listing) => listing.id));
   const enquiries = demoEnquiries.filter((enquiry) => listingIds.has(enquiry.listingId));
 
-  return { provider, listings, enquiries };
+  return { provider, properties, listings, enquiries };
 }

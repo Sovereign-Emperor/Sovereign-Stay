@@ -6,6 +6,7 @@ import {
   listingStatuses,
   userRoles,
 } from "../data/properties";
+import { demoProperties } from "../data/demoProperties";
 import { getListingById, searchListings } from "./listingService";
 
 describe("listing service", () => {
@@ -66,6 +67,7 @@ describe("listing service", () => {
     const providerIds = new Set(
       demoUsers.filter((user) => user.roleIds.includes("provider")).map(({ id }) => id),
     );
+    const propertiesById = new Map(demoProperties.map((property) => [property.id, property]));
 
     expect(listingStatuses).toEqual([
       "draft",
@@ -76,15 +78,22 @@ describe("listing service", () => {
     ]);
     expect(listingMediaKinds).toEqual(["photo", "video"]);
     expect(userRoles.map(({ id }) => id)).toEqual(["student", "provider", "administrator"]);
-    expect(demoListings.every((listing) => providerIds.has(listing.ownerId))).toBe(true);
+    expect(
+      demoListings.every((listing) => {
+        const property = propertiesById.get(listing.propertyId);
+        return property && providerIds.has(property.ownerId);
+      }),
+    ).toBe(true);
     expect(demoListings.every((listing) => listing.status === "draft" && listing.isDemo)).toBe(true);
     expect(demoListings.every((listing) => listing.media.length >= 2)).toBe(true);
     expect(
       demoListings.some((listing) => listing.media.some(({ kind }) => kind === "video")),
     ).toBe(false);
     expect(
-      demoListings.filter((listing) => listing.ownerId === "demo-provider-a").length,
-    ).toBeGreaterThan(1);
+      demoListings.filter(
+        (listing) => propertiesById.get(listing.propertyId).ownerId === "demo-provider-a",
+      ),
+    ).toHaveLength(3);
     expect(demoUsers.filter((user) => providerIds.has(user.id))).toHaveLength(2);
   });
 

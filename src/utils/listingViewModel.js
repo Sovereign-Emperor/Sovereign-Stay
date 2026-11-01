@@ -5,8 +5,10 @@ import {
   locations,
   roomTypes,
 } from "../data/properties";
+import { demoProperties } from "../data/demoProperties";
 
 const usersById = new Map(demoUsers.map((user) => [user.id, user]));
+const propertiesById = new Map(demoProperties.map((property) => [property.id, property]));
 const facilitiesById = new Map(facilities.map((facility) => [facility.id, facility]));
 const institutionsById = new Map(institutions.map((institution) => [institution.id, institution]));
 const locationsById = new Map(locations.map((location) => [location.id, location]));
@@ -17,6 +19,7 @@ const roomTypesById = new Map(roomTypes.map((roomType) => [roomType.id, roomType
  *
  * @typedef {Object} ListingViewModel
  * @property {string} id
+ * @property {string} propertyId
  * @property {string} ownerId
  * @property {string} providerVerificationStatus
  * @property {string} propertyVerificationStatus
@@ -60,7 +63,13 @@ function requireRelatedRecord(records, id, relationName, listingId) {
  * @returns {ListingViewModel}
  */
 export function toListingViewModel(listing) {
-  const owner = requireRelatedRecord(usersById, listing.ownerId, "provider", listing.id);
+  const property = requireRelatedRecord(
+    propertiesById,
+    listing.propertyId,
+    "property",
+    listing.id,
+  );
+  const owner = requireRelatedRecord(usersById, property.ownerId, "provider", listing.id);
   const location = requireRelatedRecord(
     locationsById,
     listing.locationId,
@@ -83,7 +92,8 @@ export function toListingViewModel(listing) {
 
   return {
     id: listing.id,
-    ownerId: listing.ownerId,
+    propertyId: listing.propertyId,
+    ownerId: property.ownerId,
     providerVerificationStatus: owner.providerVerificationStatus,
     propertyVerificationStatus: listing.propertyVerificationStatus,
     availabilityStatus: listing.availability.status,
@@ -100,6 +110,24 @@ export function toListingViewModel(listing) {
     pricePeriod: primaryRoom.price.period,
     roomType: roomType.label,
     availableRooms: primaryRoom.exampleRoomCount,
+    roomOffers: listing.rooms.map((room) => {
+      const roomType = requireRelatedRecord(
+        roomTypesById,
+        room.roomTypeId,
+        "room type",
+        listing.id,
+      );
+
+      return {
+        id: room.id,
+        roomType: roomType.label,
+        occupancy: roomType.occupants,
+        price: room.price.amount,
+        currency: room.price.currency,
+        pricePeriod: room.price.period,
+        exampleRoomCount: room.exampleRoomCount,
+      };
+    }),
     facilities: listing.facilityIds.map(
       (facilityId) =>
         requireRelatedRecord(facilitiesById, facilityId, "facility", listing.id).label,

@@ -59,7 +59,7 @@ Vitest runs the tests in a simulated browser environment (jsdom). React Testing 
 src/
   components/       Shared navigation, listing UI, and reusable provider dashboard pieces
   config.js         Environment-configurable public contact details
-  data/               Related demo marketplace records and local repository
+  data/               Related demo marketplace records and local repositories
   hooks/              React hooks for service-backed listing loading and paging
   pages/              Public pages and nested provider workspace routes
   services/           Listing and provider dashboard application logic
@@ -110,14 +110,19 @@ preserves the working UI while establishing a replacement point for a future
 API repository. The local adapter intentionally shows draft demo fixtures;
 a production API must only return listings approved for discovery.
 
-The provider workspace at `/provider` uses `src/data/demoProviderRepository.js`
-and `src/services/providerDashboardService.js` to show a separate,
-owner-scoped demo view. It is read-only: property creation and enquiry
-management routes are clearly marked placeholders, and the dashboard has no
-authentication, persistence, or backend permissions.
+The provider workspace at `/provider` uses normalized demo properties from
+`src/data/demoProperties.js`, provider-scoped lookups from
+`src/data/demoPropertyRepository.js`, and `src/services/providerDashboardService.js`.
+Listings reference physical properties by `propertyId`, allowing one property
+to have multiple advertisements without copying listing information into
+property records. The properties page supports name search and listing-status
+filters; property details show linked listings and room/price offers. Property
+creation and enquiry management are explicit placeholders; the dashboard has
+no authentication, persistence, or backend permissions.
 
-The model gives each listing an `ownerId` provider relationship, supports
-multiple rooms and ordered photo/video media records, and separates listing
+The model gives each physical demo property an `ownerId` provider relationship
+and references it from listings by `propertyId`. It supports multiple rooms
+and ordered photo/video media records, and separates listing
 approval from provider verification, property verification, availability, and
 the last-updated timestamp. The service accepts paginated search parameters;
 the local adapter paginates its small fixtures, while a future server adapter

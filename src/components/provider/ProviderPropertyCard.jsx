@@ -1,29 +1,33 @@
-import { ArrowUpRight, BedDouble, MapPin } from "lucide-react";
+import { ArrowUpRight, BedDouble, MapPin, Megaphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatPrice } from "../../utils/format";
 import PropertyImage from "../PropertyImage";
 import ProviderStatusBadge from "./ProviderStatusBadge";
 
 /**
- * A provider-facing summary of one demo listing.
+ * A provider-facing summary of one physical demo property and its listings.
  *
- * @param {{ property: object }} props Dashboard listing view model.
+ * @param {{ property: object }} props Aggregated property view model.
  */
 export default function ProviderPropertyCard({ property }) {
   return (
     <article className="provider-property-card">
       <Link
         className="provider-property-image"
-        to={`/properties/${property.id}`}
-        aria-label={`Preview ${property.name}`}
+        to={`/provider/properties/${property.id}`}
+        aria-label={`View details for ${property.name}`}
       >
-        <PropertyImage
-          photoId={property.photos[0]}
-          alt={`Illustrative accommodation photo for ${property.name}`}
-          width={520}
-          loading="lazy"
-        />
-        <span className="provider-image-demo-label">DEMO PHOTO</span>
+        {property.photos[0] ? (
+          <PropertyImage
+            photoId={property.photos[0]}
+            alt={`Illustrative accommodation photo for ${property.name}`}
+            width={520}
+            loading="lazy"
+          />
+        ) : (
+          <span className="provider-property-no-image">No demo photo</span>
+        )}
+        <span className="provider-image-demo-label">DEMO PROPERTY</span>
       </Link>
       <div className="provider-property-content">
         <div className="provider-property-title-row">
@@ -31,7 +35,11 @@ export default function ProviderPropertyCard({ property }) {
             <p className="provider-property-type">{property.type}</p>
             <h3>{property.name}</h3>
           </div>
-          <ProviderStatusBadge status={property.status} />
+          <div className="provider-property-statuses" aria-label="Listing statuses">
+            {property.statuses.map((status) => (
+              <ProviderStatusBadge key={status} status={status} />
+            ))}
+          </div>
         </div>
         <p className="provider-property-location">
           <MapPin size={15} aria-hidden="true" />
@@ -39,16 +47,30 @@ export default function ProviderPropertyCard({ property }) {
         </p>
         <div className="provider-property-facts">
           <span>
+            <Megaphone size={15} aria-hidden="true" />
+            {property.listingCount} {property.listingCount === 1 ? "listing" : "listings"}
+          </span>
+          <span className="provider-property-room-count">
             <BedDouble size={15} aria-hidden="true" />
             {property.roomOfferCount} room {property.roomOfferCount === 1 ? "offer" : "offers"}
           </span>
-          <span>
-            Starts at <strong>{formatPrice(property.startingPrice)}</strong> /{" "}
-            {property.startingPricePeriod.replaceAll("_", " ")}
-          </span>
+        </div>
+        <div className="provider-property-price">
+          {property.startingPrice === null ? (
+            <span>
+              {property.roomOfferCount > 0
+                ? "See room offers for pricing"
+                : "No room pricing listed"}
+            </span>
+          ) : (
+            <span>
+              Starts at <strong>{formatPrice(property.startingPrice)}</strong> /{" "}
+              {property.startingPricePeriod.replaceAll("_", " ")}
+            </span>
+          )}
         </div>
         <div className="provider-property-footer">
-          <span>Example listing · not a live offer</span>
+          <span>Example property · demo data</span>
           <Link
             className="provider-manage-link"
             to={`/provider/properties/${property.id}`}

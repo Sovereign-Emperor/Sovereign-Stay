@@ -14,6 +14,8 @@ src/
   components/                 Reusable visual pieces (cards, gallery, images)
   data/
     properties.js             Related marketplace demo records and catalogues
+    demoProperties.js         Physical demo property identities and ownership
+    demoPropertyRepository.js Provider-scoped property lookup
     demoListingRepository.js  Local repository adapter for the demo records
   lib/                        Future Supabase browser client (not implemented)
   hooks/
@@ -118,7 +120,7 @@ Identifiers are stable strings in the demo; a database may use UUIDs.
 ```json
 {
   "id": "listing-id",
-  "ownerId": "provider-user-id",
+  "propertyId": "property-id",
   "status": "draft",
   "name": "Example student residence",
   "propertyType": "Student hostel",
@@ -275,14 +277,15 @@ product needs it, since exact counts can be expensive.
 
 ## Current fixture shape
 
-`src/data/properties.js` contains related records keyed by stable ids. The
-demo listing uses `ownerId` to reference its demo provider user. The database
-model instead has a provider business own properties; the property's listings
-and room offers then belong beneath that business-owned property. This allows
-multiple team members to manage multiple properties without assigning a
-listing directly to an individual account. The demo listing also uses
-`locationId`, `institutionIds`, room type ids, and facility ids instead of
-copying those entities into each listing. Its
+`src/data/properties.js` contains related listing records keyed by stable IDs.
+Each demo listing references a physical property through `propertyId`;
+`src/data/demoProperties.js` stores the property owner. This mirrors the
+database relationship where a provider business owns properties and their
+listings and room offers belong beneath each property. It allows multiple team
+members to manage multiple properties without assigning a listing directly
+to an individual account. The demo listing also uses `locationId`,
+`institutionIds`, room type IDs, and facility IDs instead of copying those
+entities into each listing. Its
 `rooms`, `media`, `availability`, verification state, and freshness timestamp
 are separate fields. `src/utils/listingViewModel.js` joins those references
 and maps the first room and its photos to the flat shape currently consumed
@@ -311,16 +314,35 @@ summary counts for the UI. Reusable provider components render the navigation,
 summary cards, listing states, and property summaries. Add-property and
 enquiry destinations exist as explicit placeholders; property details are
 read-only. The sample enquiry count is illustrative, and no provider action is
-persisted. Since the current fixtures model listings rather than separate
-property records, the dashboard counts each owned demo listing as one example
-property until the provider-business/property hierarchy is represented in
-frontend data.
+persisted.
 
 This route is not authentication or authorization. The current fixture model
-links listings directly to demo user IDs, while the intended database
-relationship remains provider business → properties → listings. Do not use
-this demo dashboard to manage real accommodation or infer real availability,
-verification, enquiry volume, or access control.
+links demo properties to example user IDs and listings to properties, while
+the intended database relationship remains provider business → properties →
+listings. Do not use this demo dashboard to manage real accommodation or
+infer real availability, verification, enquiry volume, or access control.
+
+## Provider property management (Milestone 006.2)
+
+The demo data now distinguishes physical properties from their advertisements.
+`src/data/demoProperties.js` contains minimal property records with a stable ID
+and demo owner; `demoPropertyRepository.js` provides provider-scoped lookups.
+Each listing in `src/data/properties.js` references one physical property by
+`propertyId`; multiple listings can reference the same property. Property
+names, locations, types, photos, and room offers are derived from linked
+listings and shared catalogues rather than copied into property fixtures.
+
+`providerDashboardService` groups listings by property ID and builds the
+property summary used by the dashboard and management pages. `/provider/properties`
+searches by property name, filters by listing lifecycle status, and calculates
+property-level metrics. `/provider/properties/:propertyId` shows the physical
+property summary and each linked listing with its room offers and prices.
+Listing statuses remain separate from property verification and availability.
+
+The current sample has one listing per property, but grouping supports multiple
+advertisements attached to one property. Search and status filters are local
+to this small demo. Property creation/editing, uploads, authentication,
+server-side ownership checks, and persistence remain deferred.
 
 ## Not included in Milestone 004
 
