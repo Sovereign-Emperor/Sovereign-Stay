@@ -158,5 +158,12 @@ export const facilityOptions = [
   "Air conditioning",
 ];
 
+/**
+ * Build a consistently cropped Unsplash URL for an illustrative property image.
+ *
+ * @param {string} photoId Unsplash photo identifier.
+ * @param {number} [width=900] Requested image width in pixels.
+ * @returns {string} Image URL with the project's crop and quality settings.
+ */
 export const imageUrl = (photoId, width = 900) =>
   `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=${width}&q=85`;

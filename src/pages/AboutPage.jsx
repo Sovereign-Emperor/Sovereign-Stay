@@ -1,6 +1,6 @@
 import { ArrowRight, Compass, Heart, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { imageUrl } from "../data/properties";
+import PropertyImage from "../components/PropertyImage";
 
 const values = [
   { icon: <Compass size={20} />, title: "Discovery, made easier.", text: "See the details that matter, all in one place. Less chasing leads, more finding your fit." },
@@ -14,7 +14,7 @@ export default function AboutPage() {
       <section className="about-hero">
         <div className="container about-hero-inner">
           <div><p className="eyebrow"><span className="tiny-spark">✳</span> A LITTLE ABOUT US</p><h1>Finding home<br />should feel <em>hopeful.</em></h1><p>Not like a scavenger hunt. We’re here to make the search for student accommodation feel clearer, more visual, and a little more human.</p></div>
-          <div className="about-hero-image"><img src={imageUrl("photo-1524758631624-e2822e304c36", 1200)} alt="A warm, welcoming shared living space" /><span>PHOTO FOR ILLUSTRATION</span><div className="image-stamp"><Sparkles size={17} /><span>MADE FOR<br />STUDENT LIFE</span></div></div>
+          <div className="about-hero-image"><PropertyImage photoId="photo-1524758631624-e2822e304c36" width={1200} alt="Illustrative warm, welcoming shared living space" loading="eager" className="about-hero-visual" /><span>PHOTO FOR ILLUSTRATION</span><div className="image-stamp"><Sparkles size={17} /><span>MADE FOR<br />STUDENT LIFE</span></div></div>
         </div>
       </section>
       <section className="about-mission section-pad">

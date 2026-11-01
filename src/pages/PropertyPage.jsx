@@ -1,14 +1,23 @@
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, BedDouble, Check, ChevronLeft, ChevronRight, Clock3, MapPin, ShieldCheck, Users, X } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BedDouble, Check, Clock3, MapPin, ShieldCheck, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import PhotoGallery from "../components/PhotoGallery";
+import PropertyImage from "../components/PropertyImage";
 import WhatsAppLink from "../components/WhatsAppLink";
-import { imageUrl, properties } from "../data/properties";
+import { properties } from "../data/properties";
 import { formatPrice } from "../utils/format";
 
 export default function PropertyPage() {
   const { id } = useParams();
   const property = properties.find((item) => item.id === id);
   const [activePhoto, setActivePhoto] = useState(null);
+  const galleryOpenerRef = useRef(null);
+  const closeGallery = useCallback(() => setActivePhoto(null), []);
+
+  function openGallery(index, event) {
+    galleryOpenerRef.current = event.currentTarget;
+    setActivePhoto(index);
+  }
 
   if (!property) {
     return <main className="not-found container"><span className="eyebrow">NOT FOUND</span><h1>This place is off the map.</h1><p>It may have moved, or the link may be incorrect.</p><Link className="button button-dark" to="/"><ArrowLeft size={17} /> Back to all places</Link></main>;
@@ -26,16 +35,26 @@ export default function PropertyPage() {
           <button type="button" className="share-button" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); window.alert("Property link copied."); } catch { window.prompt("Copy this property link:", window.location.href); } }}><ArrowUpRight size={16} /> Share</button>
         </div>
         <div className="gallery-grid">
-          <button className="gallery-main" onClick={() => setActivePhoto(0)} aria-label="Open photo gallery">
-            <img src={imageUrl(property.photos[0], 1400)} alt={`${property.name}, main view`} />
+          <button className="gallery-main" onClick={(event) => openGallery(0, event)} aria-label={`Open ${property.name} photo gallery`}>
+            <PropertyImage
+              photoId={property.photos[0]}
+              width={1400}
+              alt={`${property.name}, illustrative main photo`}
+              loading="eager"
+              className="gallery-photo"
+            />
             <span className="gallery-label"><span>01</span> / {property.photos.length.toString().padStart(2, "0")} <span className="gallery-label-caption">PHOTOS FOR ILLUSTRATION</span></span>
           </button>
           {property.photos.slice(1, 5).map((photo, index) => (
-            <button className={`gallery-tile gallery-tile-${index + 1}`} key={photo} onClick={() => setActivePhoto(index + 1)} aria-label={`Open photo ${index + 2}`}>
-              <img src={imageUrl(photo, 900)} alt={`${property.name}, view ${index + 2}`} />
+            <button className={`gallery-tile gallery-tile-${index + 1}`} key={photo} onClick={(event) => openGallery(index + 1, event)} aria-label={`Open illustrative photo ${index + 2} of ${property.name}`}>
+              <PropertyImage
+                photoId={photo}
+                alt={`${property.name}, illustrative photo ${index + 2}`}
+                className="gallery-photo"
+              />
             </button>
           ))}
-          <button className="gallery-all-button" onClick={() => setActivePhoto(0)}>View all photos <ArrowUpRight size={14} /></button>
+          <button className="gallery-all-button" onClick={(event) => openGallery(0, event)}>View all photos <ArrowUpRight size={14} /></button>
         </div>
 
         <div className="detail-layout">
@@ -85,12 +104,13 @@ export default function PropertyPage() {
       </div>
 
       {activePhoto !== null && (
-        <div className="lightbox" role="dialog" aria-modal="true" aria-label="Property photo gallery" onClick={() => setActivePhoto(null)} onKeyDown={(event) => { if (event.key === "Escape") setActivePhoto(null); }}>
-          <button className="lightbox-close" onClick={() => setActivePhoto(null)} aria-label="Close gallery"><X size={23} /></button>
-          <button className="lightbox-arrow lightbox-prev" onClick={(event) => { event.stopPropagation(); showPhoto(photoIndex - 1); }} aria-label="Previous photo"><ChevronLeft size={26} /></button>
-          <figure onClick={(event) => event.stopPropagation()}><img src={imageUrl(property.photos[photoIndex], 1800)} alt={`${property.name}, gallery image ${photoIndex + 1}`} /><figcaption>{(photoIndex + 1).toString().padStart(2, "0")} / {property.photos.length.toString().padStart(2, "0")} <span>PHOTO FOR ILLUSTRATION</span></figcaption></figure>
-          <button className="lightbox-arrow lightbox-next" onClick={(event) => { event.stopPropagation(); showPhoto(photoIndex + 1); }} aria-label="Next photo"><ChevronRight size={26} /></button>
-        </div>
+        <PhotoGallery
+          photos={property.photos}
+          propertyName={property.name}
+          initialIndex={activePhoto}
+          openerRef={galleryOpenerRef}
+          onClose={closeGallery}
+        />
       )}
     </main>
   );

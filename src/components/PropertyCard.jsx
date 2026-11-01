@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { ArrowUpRight, Heart, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import { imageUrl } from "../data/properties";
+import PropertyImage from "./PropertyImage";
 import { formatPrice } from "../utils/format";
 
+/**
+ * A reusable summary card linking one demonstration property to its detail page.
+ *
+ * @param {{ property: import("../data/properties").properties[number] }} props
+ */
 export default function PropertyCard({ property }) {
+  // Saved state is intentionally temporary until the product has user accounts.
   const [saved, setSaved] = useState(false);
 
   return (
@@ -15,11 +21,12 @@ export default function PropertyCard({ property }) {
           className="property-card-image-link"
           aria-label={`View ${property.name}`}
         >
-          <img
-            className="property-card-image"
-            src={imageUrl(property.photos[0], 760)}
+          <PropertyImage
+            photoId={property.photos[0]}
             alt={`Illustrative accommodation photo for ${property.name}`}
+            width={760}
             loading="lazy"
+            className="property-card-image"
           />
         </Link>
         <span className="demo-pill">DEMO LISTING</span>

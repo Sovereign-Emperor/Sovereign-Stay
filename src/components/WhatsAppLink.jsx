@@ -1,6 +1,15 @@
 import { MessageCircle } from "lucide-react";
 import { contactDetails } from "../config";
 
+/**
+ * Open WhatsApp with a prefilled message that clearly identifies the listing as a demo.
+ *
+ * @param {{
+ *   propertyName: string,
+ *   className?: string,
+ *   children?: import("react").ReactNode
+ * }} props
+ */
 export default function WhatsAppLink({
   propertyName,
   className = "",
