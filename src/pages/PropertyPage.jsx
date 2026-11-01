@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bath, BedDouble, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Ruler, ShieldCheck, Star, Users, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BedDouble, Check, ChevronLeft, ChevronRight, Clock3, MapPin, ShieldCheck, Users, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import WhatsAppLink from "../components/WhatsAppLink";
 import { imageUrl, properties } from "../data/properties";
@@ -22,7 +22,7 @@ export default function PropertyPage() {
       <div className="container property-container">
         <Link className="back-link" to="/"><ArrowLeft size={16} /> All places</Link>
         <div className="detail-heading">
-          <div><p className="eyebrow">{property.type} <span className="detail-dot">·</span> {property.area}</p><h1>{property.name}</h1><p className="detail-address"><MapPin size={16} />{property.location}<span>·</span>{property.distanceKm} km from KTU <span>·</span><Star size={15} fill="currentColor" /> {property.rating} <span>({property.reviewCount} reviews)</span></p></div>
+          <div><p className="eyebrow">{property.type} <span className="detail-dot">·</span> {property.area} <span className="detail-dot">·</span> DEMO LISTING</p><h1>{property.name}</h1><p className="detail-address"><MapPin size={16} />{property.location}<span>·</span>approximately {property.distanceKm} km from KTU</p></div>
           <button type="button" className="share-button" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); window.alert("Property link copied."); } catch { window.prompt("Copy this property link:", window.location.href); } }}><ArrowUpRight size={16} /> Share</button>
         </div>
         <div className="gallery-grid">
@@ -41,13 +41,13 @@ export default function PropertyPage() {
         <div className="detail-layout">
           <div className="detail-main">
             <section className="detail-summary">
-              <div><p className="eyebrow">{property.school}</p><h2>{property.roomType} <span>·</span> {property.availableRooms} rooms available</h2><p className="summary-type">{property.type} in {property.area}</p></div>
+              <div><p className="eyebrow">{property.school}</p><h2>{property.roomType} <span>·</span> example listing</h2><p className="summary-type">{property.type} in {property.area}</p></div>
               <div className="host-avatar" aria-hidden="true">SS</div>
             </section>
             <div className="detail-facts">
               <div><BedDouble size={20} /><span><strong>{property.roomType}</strong><small>Room arrangement</small></span></div>
-              <div><Users size={20} /><span><strong>{property.availableRooms} rooms</strong><small>Currently available</small></span></div>
-              <div><Clock3 size={20} /><span><strong>Availability</strong><small>Confirm with provider</small></span></div>
+              <div><Users size={20} /><span><strong>{property.availableRooms} rooms shown</strong><small>Example count only</small></span></div>
+              <div><Clock3 size={20} /><span><strong>Not verified</strong><small>No live availability data</small></span></div>
             </div>
             <section className="detail-section">
               <p className="eyebrow">THE FEELING</p><h3>A good place to land.</h3><p className="detail-description">{property.description}</p>
@@ -60,7 +60,7 @@ export default function PropertyPage() {
             <section className="detail-section rules-section">
               <p className="eyebrow">A FEW HOUSE NOTES</p><h3>Good to know</h3>
               <div className="house-rules">{property.rules.map((rule) => <span key={rule}><ShieldCheck size={16} />{rule}</span>)}</div>
-              <p className="availability-note"><Clock3 size={15} /> Availability details are examples. Please confirm directly before making plans.</p>
+              <p className="availability-note"><Clock3 size={15} /> This demonstration does not represent real availability or a verified property.</p>
             </section>
             <section className="detail-section location-section">
               <p className="eyebrow">THE NEIGHBOURHOOD</p><h3>Easy to find your way.</h3>
@@ -74,11 +74,11 @@ export default function PropertyPage() {
           <aside className="enquiry-card">
             <p className="eyebrow">A PLACE TO CALL YOURS</p>
             <p className="enquiry-price"><strong>{formatPrice(property.price)}</strong><span> / semester</span></p>
-            <p className="enquiry-small">Example price · confirm with the provider</p>
-            <div className="availability-box"><span className="availability-indicator" /><span><strong>{property.availableRooms} rooms available</strong><small>Confirm current availability</small></span></div>
-            <WhatsAppLink propertyName={property.name} className="enquiry-button">Ask about this place</WhatsAppLink>
+            <p className="enquiry-small">Example price · not a live offer</p>
+            <div className="availability-box"><span className="availability-indicator" /><span><strong>Example: {property.availableRooms} rooms</strong><small>Not live or verified</small></span></div>
+            <WhatsAppLink propertyName={property.name} className="enquiry-button">Ask about real options</WhatsAppLink>
             <p className="enquiry-reassurance"><ShieldCheck size={15} /> It’s okay to ask questions before you visit.</p>
-            <div className="listing-updated"><Clock3 size={14} /> {property.updatedAt}<span>DEMO LISTING</span></div>
+            <div className="listing-updated"><Clock3 size={14} /> Demonstration data only<span>NOT VERIFIED</span></div>
           </aside>
         </div>
         <div className="detail-bottom-cta"><p>Found your kind of place?</p><Link to="/" className="text-link">Explore more stays <ArrowRight size={16} /></Link></div>

@@ -51,11 +51,13 @@ src/
 
 ## What works in this MVP
 
-- Search by property name, area, room type, school, or included facility.
-- Filter by campus, neighbourhood, room arrangement, semester budget, and facilities.
+- Search by property name or location.
+- Filter by campus, neighbourhood, room arrangement, minimum and maximum semester price, and facilities; filters can be combined.
 - Sort by recommendation, price, or distance to campus.
 - Open individual property pages with photo galleries, amenities, availability, location, and house notes.
 - Start an enquiry or viewing request in WhatsApp with a pre-filled property-specific message.
 - Browse the About page and responsive mobile navigation.
+
+Every listing and its photos, price, and example room count are demonstration content only. Listings are not real, live, or verified; ratings and reviews are not presented as real-world claims.
 
 Tailwind CSS v4 is integrated through its Vite plugin in `vite.config.js`. Listings live separately in `src/data/properties.js` and can be replaced when verified provider data is available.
