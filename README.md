@@ -116,9 +116,10 @@ The provider workspace at `/provider` uses normalized demo properties from
 Listings reference physical properties by `propertyId`, allowing one property
 to have multiple advertisements without copying listing information into
 property records. The properties page supports name search and listing-status
-filters; property details show linked listings and room/price offers. Property
-creation and enquiry management are explicit placeholders; the dashboard has
-no authentication, persistence, or backend permissions.
+filters; property details show linked listings and room/price offers. The Add
+Property route validates required details in the browser, but does not save a
+property or create listings. Enquiry management remains a placeholder; the
+dashboard has no authentication, persistence, or backend permissions.
 
 The model gives each physical demo property an `ownerId` provider relationship
 and references it from listings by `propertyId`. It supports multiple rooms

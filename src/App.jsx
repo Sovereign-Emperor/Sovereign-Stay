@@ -9,6 +9,7 @@ import PropertyPage from "./pages/PropertyPage";
 import ProviderDashboardPage from "./pages/provider/ProviderDashboardPage";
 import ProviderLayout from "./pages/provider/ProviderLayout";
 import ProviderManagePropertyPage from "./pages/provider/ProviderManagePropertyPage";
+import ProviderPropertyFormPage from "./pages/provider/ProviderPropertyFormPage";
 import ProviderPlaceholderPage from "./pages/provider/ProviderPlaceholderPage";
 import ProviderPropertiesPage from "./pages/provider/ProviderPropertiesPage";
 
@@ -43,7 +44,7 @@ export default function App() {
           <Route path="properties" element={<ProviderPropertiesPage />} />
           <Route
             path="properties/new"
-            element={<ProviderPlaceholderPage page="new-property" />}
+            element={<ProviderPropertyFormPage />}
           />
           <Route
             path="properties/:propertyId"

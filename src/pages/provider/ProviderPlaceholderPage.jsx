@@ -1,15 +1,7 @@
-import { ArrowLeft, ArrowRight, Building2, MessageSquareText, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, MessageSquareText } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const pageContent = {
-  "new-property": {
-    eyebrow: "PROPERTY SETUP",
-    title: "Property creation is coming next.",
-    description: "This demo route confirms where property onboarding will live. Creating or saving listings is not enabled yet.",
-    icon: Plus,
-    actionLabel: "Review demo properties",
-    actionTo: "/provider/properties",
-  },
   enquiries: {
     eyebrow: "PROVIDER INBOX",
     title: "Enquiry management is not connected yet.",

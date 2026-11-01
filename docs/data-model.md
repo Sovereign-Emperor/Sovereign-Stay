@@ -344,6 +344,15 @@ advertisements attached to one property. Search and status filters are local
 to this small demo. Property creation/editing, uploads, authentication,
 server-side ownership checks, and persistence remain deferred.
 
+## Property creation form (Milestone 006.3.1)
+
+`/provider/properties/new` now contains a client-side property details form.
+Required name, accommodation type, region, city, and area fields are validated
+inline; description, address, and nearby institution are optional. Successful
+validation only reports that the fields are complete. No property record is
+created, no form state is persisted, and there are no uploads, room offers,
+listing creation, editing, authentication, or backend calls in this milestone.
+
 ## Not included in Milestone 004
 
 There is no sign-in/session implementation, server-side permission

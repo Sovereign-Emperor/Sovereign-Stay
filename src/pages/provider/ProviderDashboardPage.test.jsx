@@ -65,7 +65,7 @@ describe("provider dashboard demo routes", () => {
     );
   });
 
-  it("routes add-property and enquiry actions to honest placeholders", async () => {
+  it("opens the property form and routes enquiries to an honest placeholder", async () => {
     const user = userEvent.setup();
     renderProviderRoute();
 
@@ -74,9 +74,10 @@ describe("provider dashboard demo routes", () => {
         name: "Add a property Property creation is a demo placeholder",
       }),
     );
-    expect(await screen.findByRole("heading", { name: "Property creation is coming next." })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Add a property" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Property name/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("link", { name: "Review demo properties" }));
+    await user.click(screen.getByRole("link", { name: "Cancel", exact: true }));
     const navigation = screen.getByRole("navigation", { name: "Provider navigation" });
     await user.click(within(navigation).getByRole("link", { name: "Enquiries" }));
     expect(await screen.findByRole("heading", { name: "Enquiry management is not connected yet." })).toBeInTheDocument();
