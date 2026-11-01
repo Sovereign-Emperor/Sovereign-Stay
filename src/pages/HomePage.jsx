@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowDown, ArrowRight, ChevronDown, Compass, MapPin, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import PropertyCard from "../components/PropertyCard";
 import PropertyImage from "../components/PropertyImage";
-import { facilityOptions, properties } from "../data/properties";
-import { filterProperties, validatePriceRange } from "../utils/propertyFilters";
+import { useListingFilterOptions, useListingSearch } from "../hooks/useListings";
+import { validatePriceRange } from "../utils/propertyFilters";
 
 const initialFilters = {
   query: "",
@@ -21,17 +21,16 @@ export default function HomePage() {
   const [sort, setSort] = useState("recommended");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const priceError = validatePriceRange(filters);
-
-  // Keep the visible results derived from one source of truth; invalid prices
-  // are reported separately instead of being presented as a genuine empty search.
-  const filteredProperties = useMemo(() => {
-    const results = filterProperties(properties, filters);
-
-    if (sort === "price-low") results.sort((a, b) => a.price - b.price);
-    if (sort === "price-high") results.sort((a, b) => b.price - a.price);
-    if (sort === "nearest") results.sort((a, b) => a.distanceKm - b.distanceKm);
-    return results;
-  }, [filters, sort]);
+  const {
+    items: filteredProperties,
+    total,
+    hasNextPage,
+    isLoading,
+    isLoadingMore,
+    error: listingsError,
+    loadMore,
+  } = useListingSearch(filters, sort);
+  const { options, error: filterOptionsError } = useListingFilterOptions();
 
   const setFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
   const hasFilters = Object.values(filters).some(Boolean);
@@ -54,7 +53,7 @@ export default function HomePage() {
           <p className="hero-copy">Good rooms. Clear prices. Right around campus.<br className="desktop-break" /> Your search for somewhere to belong starts here.</p>
           <a className="hero-scroll" href="#listings"><span><ArrowDown size={16} /></span> FIND YOUR PLACE</a>
           <div className="hero-stats">
-            <div><strong>{properties.length}</strong><span>demo places to explore</span></div>
+            <div><strong>{options.totalListings ?? "…"}</strong><span>demo places to explore</span></div>
             <div><strong>1</strong><span>student community</span></div>
             <div><strong>0</strong><span>guesswork required</span></div>
           </div>
@@ -87,9 +86,9 @@ export default function HomePage() {
               <SlidersHorizontal size={16} /> Filters <span className="filter-count">{hasFilters ? Object.values(filters).filter(Boolean).length : 5}</span>
             </button>
             <div className={`filter-options${mobileFiltersOpen ? " filter-options-open" : ""}`}>
-              <label className="select-wrap"><span className="sr-only">Filter by school</span><select value={filters.school} onChange={(event) => setFilter("school", event.target.value)}><option value="">All schools</option>{[...new Set(properties.map((property) => property.school))].map((school) => <option key={school}>{school}</option>)}</select><ChevronDown size={14} /></label>
-              <label className="select-wrap"><span className="sr-only">Filter by neighbourhood</span><select value={filters.area} onChange={(event) => setFilter("area", event.target.value)}><option value="">All neighbourhoods</option>{[...new Set(properties.map((property) => property.area))].map((area) => <option key={area}>{area}</option>)}</select><ChevronDown size={14} /></label>
-              <label className="select-wrap"><span className="sr-only">Filter by room type</span><select value={filters.roomType} onChange={(event) => setFilter("roomType", event.target.value)}><option value="">Any room type</option>{[...new Set(properties.map((property) => property.roomType))].map((room) => <option key={room}>{room}</option>)}</select><ChevronDown size={14} /></label>
+              <label className="select-wrap"><span className="sr-only">Filter by school</span><select value={filters.school} onChange={(event) => setFilter("school", event.target.value)}><option value="">All schools</option>{options.schools.map((school) => <option key={school}>{school}</option>)}</select><ChevronDown size={14} /></label>
+              <label className="select-wrap"><span className="sr-only">Filter by neighbourhood</span><select value={filters.area} onChange={(event) => setFilter("area", event.target.value)}><option value="">All neighbourhoods</option>{options.areas.map((area) => <option key={area}>{area}</option>)}</select><ChevronDown size={14} /></label>
+              <label className="select-wrap"><span className="sr-only">Filter by room type</span><select value={filters.roomType} onChange={(event) => setFilter("roomType", event.target.value)}><option value="">Any room type</option>{options.roomTypes.map((room) => <option key={room}>{room}</option>)}</select><ChevronDown size={14} /></label>
               <div className="price-filter" role="group" aria-label="Filter by semester price in Ghana cedis">
                 <span className="price-filter-currency">GHS</span>
                 <label className="sr-only" htmlFor="minimum-price">Minimum semester price in GHS</label>
@@ -98,23 +97,42 @@ export default function HomePage() {
                 <label className="sr-only" htmlFor="maximum-price">Maximum semester price in GHS</label>
                 <input id="maximum-price" type="number" min="0" step="1" placeholder="Max" value={filters.maxPrice} aria-invalid={Boolean(priceError)} aria-describedby={priceError ? "price-filter-error" : undefined} onChange={(event) => setFilter("maxPrice", event.target.value)} />
               </div>
-              <label className="select-wrap"><span className="sr-only">Filter by facility</span><select value={filters.facility} onChange={(event) => setFilter("facility", event.target.value)}><option value="">Any facility</option>{facilityOptions.map((facility) => <option key={facility}>{facility}</option>)}</select><ChevronDown size={14} /></label>
+              <label className="select-wrap"><span className="sr-only">Filter by facility</span><select value={filters.facility} onChange={(event) => setFilter("facility", event.target.value)}><option value="">Any facility</option>{options.facilities.map((facility) => <option key={facility}>{facility}</option>)}</select><ChevronDown size={14} /></label>
             </div>
             {hasFilters && <button className="clear-filters" type="button" onClick={() => setFilters(initialFilters)}>Clear all</button>}
           </div>
           {priceError && <p className="filter-error" id="price-filter-error" role="alert">{priceError}</p>}
 
           <div className="results-heading" id="property-grid" aria-live="polite">
-            <div><p className="eyebrow">{priceError ? "PRICE FILTER NEEDS ATTENTION" : hasFilters ? "YOUR MATCHES" : "A GOOD PLACE TO START"}</p><h3>{priceError ? "Check your price range" : hasFilters ? `${filteredProperties.length} ${filteredProperties.length === 1 ? "place" : "places"} found` : "Places you might love"} {!priceError && <span className="result-count">{filteredProperties.length.toString().padStart(2, "0")}</span>}</h3></div>
+            <div><p className="eyebrow">{priceError ? "PRICE FILTER NEEDS ATTENTION" : hasFilters ? "YOUR MATCHES" : "A GOOD PLACE TO START"}</p><h3>{priceError ? "Check your price range" : hasFilters ? `${total} ${total === 1 ? "place" : "places"} found` : "Places you might love"} {!priceError && <span className="result-count">{total.toString().padStart(2, "0")}</span>}</h3></div>
             <label className="sort-control">Sort by <select value={sort} onChange={(event) => setSort(event.target.value)}><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="nearest">Closest to campus</option></select><ChevronDown size={14} /></label>
           </div>
 
-          {priceError ? null : filteredProperties.length > 0 ? (
+          {(listingsError || filterOptionsError) && (
+            <p className="filter-error" role="alert">
+              We could not load some accommodation data. Please try again in a moment.
+            </p>
+          )}
+          {priceError ? null : isLoading && filteredProperties.length === 0 ? (
+            <p role="status">Loading demonstration listings…</p>
+          ) : listingsError ? null : filteredProperties.length > 0 ? (
             <div className="property-grid">
               {filteredProperties.map((property) => <PropertyCard key={property.id} property={property} />)}
             </div>
           ) : (
             <div className="empty-state"><span className="empty-icon"><Compass size={23} /></span><h3>No places found just yet.</h3><p>Try a different search or clear a filter to see more stays.</p><button className="button button-dark" onClick={() => setFilters(initialFilters)}>Clear filters</button></div>
+          )}
+          {!priceError && hasNextPage && (
+            <div className="load-more-wrap">
+              <button
+                type="button"
+                className="button button-dark"
+                onClick={loadMore}
+                disabled={isLoading || isLoadingMore}
+              >
+                {isLoadingMore ? "Loading more places…" : "Load more places"}
+              </button>
+            </div>
           )}
 
           <div className="demo-disclaimer"><Sparkles size={15} /><span>Every listing, photo, price, and room count is for demonstration only. None is a real or verified accommodation offer.</span></div>

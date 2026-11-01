@@ -144,6 +144,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .demo-disclaimer { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 31px; color: #5f6b60; font-size: 10px; text-align: center; }
 .demo-disclaimer svg { flex-shrink: 0; color: #7c9358; }
 .empty-state { display: grid; justify-items: center; padding: 62px 20px; border: 1px dashed #dfe3d9; text-align: center; }
+.load-more-wrap { display: flex; justify-content: center; margin-top: 28px; }
 .empty-icon { display: grid; width: 45px; height: 45px; place-items: center; border-radius: 50%; color: #72885a; background: #edf2e4; }
 .empty-state h3 { margin: 17px 0 7px; font-family: "Manrope", sans-serif; font-size: 20px; letter-spacing: -.04em; }
 .empty-state p { margin: 0 0 21px; color: var(--muted); font-size: 12px; }

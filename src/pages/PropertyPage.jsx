@@ -4,12 +4,12 @@ import { Link, useParams } from "react-router-dom";
 import PhotoGallery from "../components/PhotoGallery";
 import PropertyImage from "../components/PropertyImage";
 import WhatsAppLink from "../components/WhatsAppLink";
-import { properties } from "../data/properties";
+import { useListingById } from "../hooks/useListings";
 import { formatPrice } from "../utils/format";
 
 export default function PropertyPage() {
   const { id } = useParams();
-  const property = properties.find((item) => item.id === id);
+  const { listing: property, isLoading, error } = useListingById(id);
   const [activePhoto, setActivePhoto] = useState(null);
   const galleryOpenerRef = useRef(null);
   const closeGallery = useCallback(() => setActivePhoto(null), []);
@@ -17,6 +17,14 @@ export default function PropertyPage() {
   function openGallery(index, event) {
     galleryOpenerRef.current = event.currentTarget;
     setActivePhoto(index);
+  }
+
+  if (isLoading) {
+    return <main className="not-found container"><p role="status">Loading demonstration listing…</p></main>;
+  }
+
+  if (error) {
+    return <main className="not-found container"><p role="alert">We could not load this listing. Please try again.</p><Link className="button button-dark" to="/">Back to all places</Link></main>;
   }
 
   if (!property) {

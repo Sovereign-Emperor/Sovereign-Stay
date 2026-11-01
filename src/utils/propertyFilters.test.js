@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { properties } from "../data/properties";
 import { filterProperties, validatePriceRange } from "./propertyFilters";
+
+const properties = [
+  {
+    id: "greenview-residences",
+    name: "Greenview Student Residences",
+    location: "Poly Junction, Koforidua",
+    area: "Poly Junction",
+    school: "Koforidua Technical University",
+    roomType: "2 in a room",
+    price: 2800,
+    facilities: ["Wi-Fi", "Water"],
+  },
+  {
+    id: "hilltop-court",
+    name: "Hilltop Court Hostel",
+    location: "Oyoko, Koforidua",
+    area: "Oyoko",
+    school: "Koforidua Technical University",
+    roomType: "4 in a room",
+    price: 1950,
+    facilities: ["Water", "Kitchen"],
+  },
+];
 
 describe("filterProperties", () => {
   it("searches property names and locations without case sensitivity", () => {

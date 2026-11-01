@@ -51,24 +51,31 @@ Keep the test runner watching for changes while developing:
 npm run test:watch
 ```
 
-Vitest runs the tests in a simulated browser environment (jsdom). React Testing Library checks behavior through the same buttons, labels, and dialogs a user interacts with. Tests cover combined property filters and price validation, invalid-range feedback, failed-image fallbacks, and gallery keyboard behavior such as Escape, focus trapping, focus restoration, and scroll locking.
+Vitest runs the tests in a simulated browser environment (jsdom). React Testing Library checks behavior through the same buttons, labels, and dialogs a user interacts with. Tests cover combined property filters, price validation, service pagination and provider ownership, homepage search, detail routes, failed-image fallbacks, and gallery keyboard behavior such as Escape, focus trapping, focus restoration, and scroll locking.
 
 ## Project structure
 
 ```text
 src/
-  components/       Shared navigation, footer, property card/image, gallery, and enquiry link
-  config.js         Environment-configurable contact details
-  data/             Demonstration property listings and photo URL helper
-  pages/            Discovery homepage, property detail, and About pages
-  utils/            Shared price formatting, property filtering, and price validation
-  test/             Shared Vitest and Testing Library setup
-  App.jsx           App shell and client-side routes
-  index.css         Tailwind import and responsive design system
-  main.jsx          React entry point
+  components/       Shared navigation, footer, cards, gallery, and enquiry link
+  config.js         Environment-configurable public contact details
+  data/               Related demo marketplace records and local repository
+  hooks/              React hooks for service-backed listing loading and paging
+  pages/              Discovery homepage, property detail, and About pages
+  services/           Listing search, detail, and filter-option operations
+  test/                Shared Vitest and Testing Library setup
+  utils/               Filtering, formatting, and listing-to-UI mapping
+  App.jsx              App shell and client-side routes
+  index.css            Tailwind import and responsive design system
+  main.jsx             React entry point
+docs/
+  data-model.md       Milestone 004 data model and future architecture
+```
 
 Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx` files.
-```
+Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
+listing lifecycle, trust fields, media storage, pagination, and the proposed
+provider/admin architecture.
 
 ## What works in this MVP
 
@@ -81,4 +88,20 @@ Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx` file
 
 Every property shown, including its photos, price, and example room count, is demonstration content only; listings are not real, live, or verified.
 
-Tailwind CSS v4 is integrated through its Vite plugin in `vite.config.js`. Listings live separately in `src/data/properties.js` and can be replaced when verified provider data is available.
+Tailwind CSS v4 is integrated through its Vite plugin in `vite.config.js`.
+Listing pages now use `src/services/listingService.js` instead of importing
+fixture arrays. The service calls the demo repository, which adapts the
+normalized provider/listing/location/room/facility records in
+`src/data/properties.js` to the current card and detail view model. This
+preserves the working UI while establishing a replacement point for a future
+API repository. The local adapter intentionally shows draft demo fixtures;
+a production API must only return listings approved for discovery.
+
+The model gives each listing an `ownerId` provider relationship, supports
+multiple rooms and ordered photo/video media records, and separates listing
+approval from provider verification, property verification, availability, and
+the last-updated timestamp. The service accepts paginated search parameters;
+the local adapter paginates its small fixtures, while a future server adapter
+must perform filtering and pagination in the database for large result sets.
+Authentication, provider dashboards, administration, uploads, moderation,
+and persistence are not implemented yet.

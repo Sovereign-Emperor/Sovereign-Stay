@@ -7,7 +7,7 @@ import { formatPrice } from "../utils/format";
 /**
  * A reusable summary card linking one demonstration property to its detail page.
  *
- * @param {{ property: import("../data/properties").properties[number] }} props
+ * @param {{ property: import("../utils/listingViewModel").ListingViewModel }} props
  */
 export default function PropertyCard({ property }) {
   // Saved state is intentionally temporary until the product has user accounts.
