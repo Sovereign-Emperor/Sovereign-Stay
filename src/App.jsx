@@ -1,4 +1,4 @@
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import Footer from "./components/Footer";
@@ -6,6 +6,11 @@ import Navbar from "./components/Navbar";
 import AboutPage from "./pages/AboutPage";
 import HomePage from "./pages/HomePage";
 import PropertyPage from "./pages/PropertyPage";
+import ProviderDashboardPage from "./pages/provider/ProviderDashboardPage";
+import ProviderLayout from "./pages/provider/ProviderLayout";
+import ProviderManagePropertyPage from "./pages/provider/ProviderManagePropertyPage";
+import ProviderPlaceholderPage from "./pages/provider/ProviderPlaceholderPage";
+import ProviderPropertiesPage from "./pages/provider/ProviderPropertiesPage";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -22,17 +27,52 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  const { pathname } = useLocation();
+  const isProviderRoute = pathname === "/provider" || pathname.startsWith("/provider/");
+
   return (
     <>
       <ScrollToTop />
-      <Navbar />
+      {!isProviderRoute && <Navbar />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/properties/:id" element={<PropertyPage />} />
         <Route path="/about" element={<AboutPage />} />
-        <Route path="*" element={<main className="not-found container"><span className="eyebrow">404 · A LITTLE LOST?</span><h1>That page isn’t here.</h1><p>Let’s find you somewhere better.</p><a className="button button-dark" href="/">Back to the stays <ArrowRight size={17} /></a></main>} />
+        <Route path="/provider" element={<ProviderLayout />}>
+          <Route index element={<ProviderDashboardPage />} />
+          <Route path="properties" element={<ProviderPropertiesPage />} />
+          <Route
+            path="properties/new"
+            element={<ProviderPlaceholderPage page="new-property" />}
+          />
+          <Route
+            path="properties/:propertyId"
+            element={<ProviderManagePropertyPage />}
+          />
+          <Route
+            path="enquiries"
+            element={<ProviderPlaceholderPage page="enquiries" />}
+          />
+          <Route
+            path="*"
+            element={<ProviderPlaceholderPage page="not-found" />}
+          />
+        </Route>
+        <Route
+          path="*"
+          element={
+            <main className="not-found container">
+              <span className="eyebrow">404 · A LITTLE LOST?</span>
+              <h1>That page isn’t here.</h1>
+              <p>Let’s find you somewhere better.</p>
+              <Link className="button button-dark" to="/">
+                Back to the stays <ArrowRight size={17} />
+              </Link>
+            </main>
+          }
+        />
       </Routes>
-      <Footer />
+      {!isProviderRoute && <Footer />}
     </>
   );
 }

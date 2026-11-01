@@ -25,6 +25,7 @@ export default function Navbar() {
         <div className={`nav-links${menuOpen ? " nav-links-open" : ""}`}>
           <NavLink to="/" end onClick={closeMenu}>Find a place</NavLink>
           <NavLink to="/about" onClick={closeMenu}>About us</NavLink>
+          <NavLink to="/provider" onClick={closeMenu}>For providers</NavLink>
           <Link className="nav-cta" to="/#listings" onClick={closeMenu}>Explore stays <span aria-hidden="true">↗</span></Link>
         </div>
       </nav>

@@ -57,12 +57,12 @@ Vitest runs the tests in a simulated browser environment (jsdom). React Testing 
 
 ```text
 src/
-  components/       Shared navigation, footer, cards, gallery, and enquiry link
+  components/       Shared navigation, listing UI, and reusable provider dashboard pieces
   config.js         Environment-configurable public contact details
   data/               Related demo marketplace records and local repository
   hooks/              React hooks for service-backed listing loading and paging
-  pages/              Discovery homepage, property detail, and About pages
-  services/           Listing search, detail, and filter-option operations
+  pages/              Public pages and nested provider workspace routes
+  services/           Listing and provider dashboard application logic
   test/                Shared Vitest and Testing Library setup
   utils/               Filtering, formatting, and listing-to-UI mapping
   App.jsx              App shell and client-side routes
@@ -78,6 +78,12 @@ supabase/
 ```
 
 Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx` files.
+The provider workspace is available at `/provider`. It uses a separate demo
+provider repository and service, shows only that example provider's listings,
+and includes working navigation to property, enquiry, and add-property
+destinations. Property creation and enquiry management are explicit
+placeholders; no provider changes are saved, and there is no authentication,
+backend connection, or real provider data.
 Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
 listing lifecycle, trust fields, media storage, pagination, and the proposed
 provider/admin architecture.
@@ -104,14 +110,20 @@ preserves the working UI while establishing a replacement point for a future
 API repository. The local adapter intentionally shows draft demo fixtures;
 a production API must only return listings approved for discovery.
 
+The provider workspace at `/provider` uses `src/data/demoProviderRepository.js`
+and `src/services/providerDashboardService.js` to show a separate,
+owner-scoped demo view. It is read-only: property creation and enquiry
+management routes are clearly marked placeholders, and the dashboard has no
+authentication, persistence, or backend permissions.
+
 The model gives each listing an `ownerId` provider relationship, supports
 multiple rooms and ordered photo/video media records, and separates listing
 approval from provider verification, property verification, availability, and
 the last-updated timestamp. The service accepts paginated search parameters;
 the local adapter paginates its small fixtures, while a future server adapter
 must perform filtering and pagination in the database for large result sets.
-Authentication, provider dashboards, administration, uploads, moderation,
-and persistence are not implemented yet.
+Authentication, provider property editing/creation, administration, uploads,
+moderation, and persistent provider data are not implemented yet.
 
 The initial Supabase SQL schema and lookup seed are staged under `supabase/`.
 They are not connected to the frontend or a remote project. Local database

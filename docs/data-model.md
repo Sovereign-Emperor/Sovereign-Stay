@@ -302,10 +302,30 @@ or reactivating archived listings until their moderation workflow is designed.
 Properties containing a published listing are also read-only to providers in
 this first policy set, so property edits require a later moderated workflow.
 
+## Provider dashboard foundation (Milestone 006.1)
+
+The React app now has a demo-only provider workspace at `/provider`. Its
+`demoProviderRepository` scopes the existing demo listings to one example
+provider, and `providerDashboardService` adapts those records and calculates
+summary counts for the UI. Reusable provider components render the navigation,
+summary cards, listing states, and property summaries. Add-property and
+enquiry destinations exist as explicit placeholders; property details are
+read-only. The sample enquiry count is illustrative, and no provider action is
+persisted. Since the current fixtures model listings rather than separate
+property records, the dashboard counts each owned demo listing as one example
+property until the provider-business/property hierarchy is represented in
+frontend data.
+
+This route is not authentication or authorization. The current fixture model
+links listings directly to demo user IDs, while the intended database
+relationship remains provider business → properties → listings. Do not use
+this demo dashboard to manage real accommodation or infer real availability,
+verification, enquiry volume, or access control.
+
 ## Not included in Milestone 004
 
 There is no sign-in/session implementation, server-side permission
-enforcement, provider dashboard, admin console, database, API, upload
-pipeline, enquiry persistence, report workflow, or review workflow. Those
-need separate milestones with backend validation, privacy/security design,
-and integration tests.
+enforcement, provider listing creation/editing, admin console, connected
+database/API, upload pipeline, real enquiry persistence, report workflow, or
+review workflow. Those need separate milestones with backend validation,
+privacy/security design, and integration tests.
