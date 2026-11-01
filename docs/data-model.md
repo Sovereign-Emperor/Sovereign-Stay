@@ -2,7 +2,10 @@
 
 This document describes the Milestone 004 model and the boundaries already
 present in the frontend. The application still uses local demonstration data:
-there is no database, real account, upload flow, moderation workflow, or API.
+there is no connected database, real account, upload flow, moderation
+workflow, or API. A first Supabase schema migration is staged under
+`supabase/migrations/`, but it has not yet been applied or validated against a
+local PostgreSQL instance.
 
 ## Current folder architecture
 
@@ -12,6 +15,7 @@ src/
   data/
     properties.js             Related marketplace demo records and catalogues
     demoListingRepository.js  Local repository adapter for the demo records
+  lib/                        Future Supabase browser client (not implemented)
   hooks/
     useListings.js            React loading, errors, request races, and paging
   pages/                      Route-level homepage, detail, and About screens
@@ -27,6 +31,11 @@ The service methods are the page-facing data contract. The local adapter keeps
 this MVP self-contained. A later API adapter can implement the same search,
 detail, and filter-option operations and send filters and pagination to a
 server. Components do not import the fixture array.
+
+Milestone 005A adds a local Supabase configuration, initial versioned schema,
+and lookup seed. It does not replace the repository, connect the frontend, or
+apply the migration to a database. See `docs/supabase-setup.md` for current
+tooling and validation status.
 
 ## Proposed platform folder architecture
 
@@ -45,7 +54,7 @@ src/
     mediaService.js           Upload request and media-processing coordination
   data/
     demoListingRepository.js  Development-only fixture adapter
-    api/                      Future HTTP repository implementations
+    supabaseListingRepository.js  Future Supabase adapter
   hooks/
     useListings.js            Shared React integration with listing use cases
 ```
@@ -59,9 +68,11 @@ frontend hides actions.
 
 | Entity | Important fields | Relationship / purpose |
 |---|---|---|
-| User | `id`, `displayName`, `roleIds`, account state, provider verification state | One user can have one or more roles. A provider user can own many listings. |
+| User | `id`, `displayName`, `roleIds`, account state | One user can have one or more roles and can be a member of multiple provider businesses. |
 | Role / permission | role id; permission identifiers | Describes student, provider, and administrator capabilities. These frontend definitions are explanatory only; the backend must enforce permissions. |
-| Listing | `id`, `ownerId`, `status`, `name`, property type, `locationId`, `institutionIds`, description | `ownerId` references a provider user. Each listing has exactly one owner; a provider can own many. |
+| Provider business | `id`, display name, verification status | A business can have multiple authorized user memberships and manage multiple properties. |
+| Property | `id`, `providerBusinessId`, `locationId`, name, property type, verification status | Each property belongs to one provider business; a property can have multiple listings. |
+| Listing | `id`, `propertyId`, `status`, `name`, `institutionIds`, description | A listing belongs to a property and holds the discoverable offering and moderation lifecycle. |
 | Room | `id`, `listingId`, `roomTypeId`, occupancy, price amount/currency/period | One listing can have multiple room types and distinct prices. |
 | Room type | `id`, label, occupant count | Shared catalogue referenced by rooms, e.g. “2 in a room”. |
 | Facility / amenity | `id`, label | Shared catalogue; listings reference facilities by id. |
@@ -74,6 +85,30 @@ frontend hides actions.
 | Moderation action | listing, administrator, action, reason, timestamp | Records approval, rejection, removal, and other administrative decisions. |
 | Report | reporter, listing, reason, description, status, timestamps | Supports review queues and a record of the outcome. |
 | Review | author, listing, optional room/stay reference, rating, text, moderation state | Future-only. Reviews must be tied to a real, eligible interaction before being presented as trustworthy. |
+
+### Supabase schema staged in Milestone 005A
+
+The migration turns the core concepts into 18 relational tables:
+
+- Identity and roles: `profiles`, `roles`, `user_roles`.
+- Provider ownership/team access: `provider_businesses`,
+  `provider_business_memberships` (`owner`, `manager`, `editor`).
+- Geography/catalogues: `locations`, `institutions`, `room_types`, `facilities`.
+- Property and discovery: `properties`, `listings`, `listing_institutions`,
+  `listing_rooms`, `property_facilities`.
+- Media and availability: `listing_media`, `availability`.
+- Administrative audit: `moderation_actions`, `verification_events`.
+
+The hierarchy is `provider_business -> properties -> listings -> listing_rooms`.
+`listing_rooms` holds amount, currency, pricing period, occupancy, quantity, and
+active state. A listing may reference many institutions and media records.
+Media rows store bucket/path metadata for images or videos, not file bytes.
+Provider verification, property verification, listing publication, and
+availability are stored independently.
+
+Saved properties, enquiries/viewing requests, reports, reviews, bookings, and
+payments are intentionally deferred; no Storage bucket or upload policy is
+created in this foundation.
 
 ### Example record shapes
 
@@ -186,12 +221,12 @@ Listing `status` uses these lifecycle values:
 5. `archived` — removed from discovery while preserving its history.
 
 The UI must not infer verification or availability from lifecycle status.
-Keep these independent:
+The database keeps these independent:
 
-- Provider verification: `users.providerVerificationStatus`.
-- Property verification: `listings.propertyVerificationStatus`.
-- Availability: `listings.availability.status`, plus when it was last confirmed.
-- Listing freshness: `listings.lastUpdatedAt`, updated by successful edits.
+- Provider verification: `provider_businesses.verification_status`.
+- Property verification: `properties.verification_status`.
+- Availability: `availability.status`, plus when it was last confirmed.
+- Listing freshness: `listings.updated_at`, maintained by a database trigger.
 
 The demo providers and listings are unverified; demo availability is
 `unknown`; demo `lastUpdatedAt` values are `null`. Demo listing fixtures have
@@ -240,9 +275,14 @@ product needs it, since exact counts can be expensive.
 
 ## Current fixture shape
 
-`src/data/properties.js` contains related records keyed by stable ids. A
-listing uses `ownerId`, `locationId`, `institutionIds`, room type ids, and
-facility ids instead of copying those entities into each listing. Its
+`src/data/properties.js` contains related records keyed by stable ids. The
+demo listing uses `ownerId` to reference its demo provider user. The database
+model instead has a provider business own properties; the property's listings
+and room offers then belong beneath that business-owned property. This allows
+multiple team members to manage multiple properties without assigning a
+listing directly to an individual account. The demo listing also uses
+`locationId`, `institutionIds`, room type ids, and facility ids instead of
+copying those entities into each listing. Its
 `rooms`, `media`, `availability`, verification state, and freshness timestamp
 are separate fields. `src/utils/listingViewModel.js` joins those references
 and maps the first room and its photos to the flat shape currently consumed
@@ -252,6 +292,15 @@ That view model is a UI compatibility layer, not a second source of truth.
 When the UI needs multiple rooms, videos, or verified trust indicators, add
 those features by adapting the view model and reusable components rather
 than duplicating listing data.
+
+The initial SQL schema withholds internal creator and membership identifiers
+from ordinary public-facing table reads. Provider-scoped access to those
+management fields and rejected-listing reasons will need explicit owner-
+authorized API operations as the dashboard and review experience are built.
+The first migration intentionally does not allow editing published listings
+or reactivating archived listings until their moderation workflow is designed.
+Properties containing a published listing are also read-only to providers in
+this first policy set, so property edits require a later moderated workflow.
 
 ## Not included in Milestone 004
 

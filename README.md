@@ -2,7 +2,7 @@
 
 A mobile-first student accommodation discovery MVP for students around Koforidua Technical University (KTU). It is built with React, Vite, React Router, Tailwind CSS v4, and Lucide icons.
 
-> **Demo data:** The properties, photos, prices, and example room counts in this frontend are illustrative only—not verified real-world listings or live availability. There is no backend, authentication, or payment processing.
+> **Demo data:** The properties, photos, prices, and example room counts in this frontend are illustrative only—not verified real-world listings or live availability. The frontend is not connected to a database or authentication service; there is no payment processing.
 
 ## Run locally
 
@@ -70,12 +70,19 @@ src/
   main.jsx             React entry point
 docs/
   data-model.md       Milestone 004 data model and future architecture
+  supabase-setup.md   Local Supabase setup, migrations, and security notes
+supabase/
+  config.toml         Local Supabase CLI configuration
+  migrations/         Versioned PostgreSQL schema and RLS foundation
+  seed.sql            Safe lookup catalogue values only
 ```
 
 Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx` files.
 Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
 listing lifecycle, trust fields, media storage, pagination, and the proposed
 provider/admin architecture.
+Read [docs/supabase-setup.md](./docs/supabase-setup.md) for the local database
+foundation, required tools, migration commands, and security warnings.
 
 ## What works in this MVP
 
@@ -105,3 +112,8 @@ the local adapter paginates its small fixtures, while a future server adapter
 must perform filtering and pagination in the database for large result sets.
 Authentication, provider dashboards, administration, uploads, moderation,
 and persistence are not implemented yet.
+
+The initial Supabase SQL schema and lookup seed are staged under `supabase/`.
+They are not connected to the frontend or a remote project. Local database
+validation requires the Supabase CLI and Docker; see the setup guide for
+commands and the current validation limitation.
