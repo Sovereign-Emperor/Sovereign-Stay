@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Check, MapPin, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import ProviderImageUpload from "../../components/provider/ProviderImageUpload";
 import { GHANA_REGIONS } from "../../data/ghanaRegions";
 import { validatePropertyForm } from "../../utils/propertyFormValidation";
 
@@ -195,6 +196,8 @@ export default function ProviderPropertyFormPage() {
             </div>
           </div>
         </section>
+
+        <ProviderImageUpload />
 
         <section className="provider-form-section" aria-labelledby="property-location-heading">
           <div className="provider-form-section-heading">

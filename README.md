@@ -122,6 +122,8 @@ property or create listings. Enquiry management remains a placeholder; the
 dashboard has no authentication, persistence, or backend permissions.
 The form's region options come from `src/data/ghanaRegions.js`; city and
 neighbourhood remain provider-entered text rather than an incomplete lookup.
+Property photos can be selected for local previews and removed or marked as
+the cover image. No image upload or permanent storage is connected.
 
 The model gives each physical demo property an `ownerId` provider relationship
 and references it from listings by `propertyId`. It supports multiple rooms

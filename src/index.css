@@ -705,6 +705,29 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .provider-form-success { display: flex; align-items: start; gap: 9px; padding: 12px 14px; border: 1px solid #d8e5ce; color: #405b3b; background: #f0f5e9; }
 .provider-form-success svg { flex-shrink: 0; }
 .provider-form-success p { margin: 0; font-size: 9px; line-height: 1.6; }
+.provider-photo-recommendation { margin: 14px 0 11px; color: #687568; font-size: 9px; line-height: 1.65; }
+.provider-photo-dropzone { display: grid; min-height: 145px; justify-items: center; align-content: center; gap: 7px; padding: 18px; border: 1px dashed #b9c7af; color: #53694c; background: #fafbf8; text-align: center; cursor: pointer; transition: background .18s, border-color .18s; }
+.provider-photo-dropzone:hover, .provider-photo-dropzone-active, .provider-photo-dropzone:focus-within { border-color: #70885f; background: #f0f4e9; }
+.provider-photo-dropzone:focus-within { outline: 2px solid #9db18d; outline-offset: 2px; }
+.provider-photo-dropzone-icon { display: grid; width: 38px; height: 38px; place-items: center; color: #58714f; background: #eaf0e2; }
+.provider-photo-dropzone-title { color: #394b3c; font-size: 10px; font-weight: 700; }
+.provider-photo-dropzone-guidance { color: #788477; font-size: 8px; }
+.provider-photo-errors { display: grid; gap: 4px; margin: 10px 0 0; padding: 10px 12px 10px 28px; border: 1px solid #ead3cf; color: #98483f; background: #fbf3f1; font-size: 8px; line-height: 1.55; }
+.provider-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; margin-top: 13px; }
+.provider-photo-card { min-width: 0; overflow: hidden; border: 1px solid #e1e6dc; background: #fff; }
+.provider-photo-card-cover { border-color: #9baa83; box-shadow: inset 0 0 0 1px #9baa83; }
+.provider-photo-preview { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: #f0f2ec; }
+.provider-photo-preview > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.provider-photo-preview-fallback { display: grid; height: 100%; justify-items: center; align-content: center; gap: 6px; color: #748071; font-size: 8px; }
+.provider-photo-cover-badge { position: absolute; right: 6px; bottom: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 5px 7px; color: #fff; background: rgba(37,71,48,.94); font-size: 7px; font-weight: 700; }
+.provider-photo-card-footer { display: flex; min-height: 39px; align-items: center; justify-content: space-between; gap: 5px; padding: 6px 7px; }
+.provider-photo-filename { min-width: 0; overflow: hidden; color: #536155; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.provider-photo-actions { display: flex; flex-shrink: 0; align-items: center; gap: 4px; }
+.provider-photo-action, .provider-photo-remove { display: inline-flex; min-height: 28px; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; color: #566a50; background: transparent; font: inherit; font-size: 7px; font-weight: 650; cursor: pointer; }
+.provider-photo-action { padding-inline: 5px; }
+.provider-photo-remove { width: 28px; color: #85534d; }
+.provider-photo-action:hover, .provider-photo-remove:hover { border-color: #dce4d5; background: #f4f6f0; }
+.provider-photo-action:focus-visible, .provider-photo-remove:focus-visible { outline: 2px solid #849b68; outline-offset: 1px; }
 @media (max-width: 700px) {
   .provider-form-section { padding: 15px; }
   .provider-form-grid { grid-template-columns: 1fr; gap: 13px; }
@@ -713,4 +736,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
   .provider-form-heading-icon { width: 40px; height: 40px; }
   .provider-form-actions { justify-content: stretch; }
   .provider-form-actions > * { flex: 1; }
+  .provider-photo-dropzone { min-height: 128px; padding: 14px; }
+  .provider-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .provider-photo-card-footer { align-items: start; }
+  .provider-photo-action { width: 28px; overflow: hidden; padding: 0; font-size: 0; }
+  .provider-photo-action svg { flex-shrink: 0; }
 }

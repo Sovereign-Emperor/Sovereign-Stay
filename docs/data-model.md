@@ -363,6 +363,16 @@ and nearby institution are optional. The form groups identity, primary
 location, and additional location details separately. Values remain in
 browser component state only and are not persisted.
 
+## Property photo preview interface (Milestone 006.3.3)
+
+`ProviderImageUpload` accepts multiple JPG/JPEG, PNG, and WebP files up to
+5 MB each. It creates browser object URLs for local thumbnail previews,
+allows removing photos and choosing a cover, and revokes URLs on removal and
+component cleanup. Invalid formats and oversized files produce accessible
+errors; a thumbnail that cannot be previewed falls back to a clear message.
+These files are not included in form submission, uploaded, or stored
+permanently. Image selection remains optional.
+
 ## Not included in Milestone 004
 
 There is no sign-in/session implementation, server-side permission
