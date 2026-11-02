@@ -688,7 +688,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .provider-form-field { display: grid; min-width: 0; align-content: start; gap: 6px; }
 .provider-form-field-wide { grid-column: 1 / -1; }
 .provider-form-field label { color: #435347; font-size: 9px; font-weight: 650; }
-.provider-form-field label > span:first-child { color: #a25044; }
+.provider-form-field label > span[aria-hidden="true"] { color: #a25044; }
 .provider-form-optional { margin-left: 5px; color: #869084; font-size: 8px; font-weight: 450; }
 .provider-form-field input, .provider-form-field select, .provider-form-field textarea { width: 100%; min-height: 41px; padding: 10px 11px; border: 1px solid #dfe5da; border-radius: 0; outline: 0; color: #344438; background: #fff; font: inherit; font-size: 10px; }
 .provider-form-field textarea { min-height: 95px; resize: vertical; line-height: 1.6; }

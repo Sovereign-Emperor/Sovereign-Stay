@@ -353,6 +353,16 @@ validation only reports that the fields are complete. No property record is
 created, no form state is persisted, and there are no uploads, room offers,
 listing creation, editing, authentication, or backend calls in this milestone.
 
+## Property location details (Milestone 006.3.2)
+
+The property form uses the reusable `src/data/ghanaRegions.js` catalogue for
+the complete set of 16 Ghana regions. Region selection is required and
+validated against that catalogue; city/town and area/neighbourhood remain
+required text fields rather than an incomplete city lookup. Street/address
+and nearby institution are optional. The form groups identity, primary
+location, and additional location details separately. Values remain in
+browser component state only and are not persisted.
+
 ## Not included in Milestone 004
 
 There is no sign-in/session implementation, server-side permission

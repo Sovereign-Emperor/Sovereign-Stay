@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Check, MapPin, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { GHANA_REGIONS } from "../../data/ghanaRegions";
 import { validatePropertyForm } from "../../utils/propertyFormValidation";
 
 const accommodationTypes = [
@@ -134,8 +135,8 @@ export default function ProviderPropertyFormPage() {
           <div className="provider-form-section-heading">
             <span className="provider-form-section-icon" aria-hidden="true"><Building2 size={17} /></span>
             <div>
-              <h3 id="property-basics-heading">Property basics</h3>
-              <p>Tell us what this accommodation is called and what kind of place it is.</p>
+              <h3 id="property-basics-heading">Property identity</h3>
+              <p>Give the property a clear name and choose the accommodation type.</p>
             </div>
           </div>
 
@@ -199,32 +200,36 @@ export default function ProviderPropertyFormPage() {
           <div className="provider-form-section-heading">
             <span className="provider-form-section-icon" aria-hidden="true"><MapPin size={17} /></span>
             <div>
-              <h3 id="property-location-heading">Location</h3>
-              <p>Help students understand the area. A precise street address is optional.</p>
+              <h3 id="property-location-heading">Property location</h3>
+              <p>Choose the region, then enter the town and neighbourhood where the property is located.</p>
             </div>
           </div>
 
           <div className="provider-form-grid">
             <div className="provider-form-field">
               <label htmlFor="property-region">Region <span aria-hidden="true">*</span></label>
-              <input
+              <select
                 autoComplete="address-level1"
                 id="property-region"
                 name="region"
                 value={values.region}
                 onChange={updateField}
                 onBlur={markFieldTouched}
-                placeholder="e.g. Eastern Region"
                 required
                 aria-required="true"
                 aria-invalid={Boolean(errors.region)}
                 aria-describedby={errors.region ? getFieldErrorId("region") : undefined}
-              />
+              >
+                <option value="">Select region</option>
+                {GHANA_REGIONS.map((region) => (
+                  <option key={region} value={region}>{region}</option>
+                ))}
+              </select>
               {renderError("region")}
             </div>
 
             <div className="provider-form-field">
-              <label htmlFor="property-city">City <span aria-hidden="true">*</span></label>
+              <label htmlFor="property-city">City or town <span aria-hidden="true">*</span></label>
               <input
                 autoComplete="address-level2"
                 id="property-city"
@@ -232,13 +237,14 @@ export default function ProviderPropertyFormPage() {
                 value={values.city}
                 onChange={updateField}
                 onBlur={markFieldTouched}
-                placeholder="e.g. Koforidua"
+                placeholder="e.g. Kumasi, Ho, or Koforidua"
                 required
                 aria-required="true"
                 aria-invalid={Boolean(errors.city)}
                 aria-describedby={errors.city ? getFieldErrorId("city") : undefined}
               />
               {renderError("city")}
+              <span className="provider-form-hint">Enter the town or city where students can find this accommodation.</span>
             </div>
 
             <div className="provider-form-field">
@@ -250,15 +256,28 @@ export default function ProviderPropertyFormPage() {
                 value={values.area}
                 onChange={updateField}
                 onBlur={markFieldTouched}
-                placeholder="e.g. Poly Junction"
+                placeholder="e.g. Ayeduase, Adweso, or Dansoman"
                 required
                 aria-required="true"
                 aria-invalid={Boolean(errors.area)}
                 aria-describedby={errors.area ? getFieldErrorId("area") : undefined}
               />
               {renderError("area")}
+              <span className="provider-form-hint">Add the local area or neighbourhood, not a room or building name.</span>
             </div>
+          </div>
+        </section>
 
+        <section className="provider-form-section" aria-labelledby="additional-location-heading">
+          <div className="provider-form-section-heading">
+            <span className="provider-form-section-icon" aria-hidden="true"><MapPin size={17} /></span>
+            <div>
+              <h3 id="additional-location-heading">Additional location details</h3>
+              <p>Optional details can help students recognize the surrounding area.</p>
+            </div>
+          </div>
+
+          <div className="provider-form-grid">
             <div className="provider-form-field">
               <label htmlFor="property-address">Street or address <span className="provider-form-optional">Optional</span></label>
               <input
@@ -268,11 +287,12 @@ export default function ProviderPropertyFormPage() {
                 value={values.address}
                 onChange={updateField}
                 onBlur={markFieldTouched}
-                placeholder="Street name or nearby landmark"
+                placeholder="e.g. House number, street, or a nearby landmark"
               />
+              <span className="provider-form-hint">A full street address is not required for this demo form.</span>
             </div>
 
-            <div className="provider-form-field provider-form-field-wide">
+            <div className="provider-form-field">
               <label htmlFor="property-institution">Nearby institution <span className="provider-form-optional">Optional</span></label>
               <input
                 id="property-institution"
@@ -280,10 +300,11 @@ export default function ProviderPropertyFormPage() {
                 value={values.institution}
                 onChange={updateField}
                 onBlur={markFieldTouched}
-                placeholder="e.g. Koforidua Technical University"
+                placeholder="e.g. University of Ghana or KNUST"
               />
-              <span className="provider-form-hint">Add a nearby university or tertiary institution if relevant.</span>
+              <span className="provider-form-hint">Enter a nearby university or tertiary institution, if relevant.</span>
             </div>
+
           </div>
         </section>
 
