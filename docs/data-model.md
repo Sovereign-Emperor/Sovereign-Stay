@@ -1,11 +1,10 @@
 # Sovereign Stay data model and growth architecture
 
-This document describes the model and boundaries already present in the
-frontend. The application still uses local demonstration data: there is no
-connected database, real account, remote upload flow, moderation workflow, or
-API. A first Supabase schema migration is staged under
-`supabase/migrations/`, but it has not yet been applied or validated against a
-local PostgreSQL instance.
+This document describes the browser-local demonstration marketplace and the
+planned/implemented Supabase data model. Supabase email authentication and
+server-side administrative/payment scaffolding exist, but the marketplace UI
+still uses local demo repositories. No migration has yet been applied or
+validated against a local PostgreSQL instance, and there is no remote project.
 
 ## Current folder architecture
 
@@ -19,12 +18,15 @@ src/
     demoListingRepository.js  Local repository adapter for the demo records
     providerPropertyRepository.js Browser-local provider property CRUD
     propertyImageRepository.js IndexedDB photo-blob storage
-  lib/                        Future Supabase browser client (not implemented)
+  data/supabaseClient.js      Lazy-loaded public Supabase client
+  auth/                       Supabase session context
   hooks/
     useListings.js            React loading, errors, request races, and paging
   pages/                      Route-level homepage, detail, and About screens
   services/
-    listingService.js         Search/detail/filter-options application boundary
+    listingService.js         Demo search/detail/filter-options boundary
+    authService.js            Supabase auth and provider onboarding
+    adminService.js           Restricted administrator RPC adapter
   utils/
     listingViewModel.js       Maps normalized records into the existing UI shape
     propertyFilters.js        Price validation and composable filter logic
@@ -36,10 +38,11 @@ this MVP self-contained. A later API adapter can implement the same search,
 detail, and filter-option operations and send filters and pagination to a
 server. Components do not import the fixture array.
 
-Milestone 005A adds a local Supabase configuration, initial versioned schema,
-and lookup seed. It does not replace the repository, connect the frontend, or
-apply the migration to a database. See `docs/supabase-setup.md` for current
-tooling and validation status.
+Milestone 005A adds the initial versioned schema; the later operations
+migration adds enquiries, bookings, payments, reports, reviews, notifications,
+audit events, storage policy, and server-side payment functions. It does not
+replace local demo repositories or prove those policies are correct. See
+`docs/supabase-setup.md` for setup and validation status.
 
 ## Proposed platform folder architecture
 
@@ -90,9 +93,10 @@ frontend hides actions.
 | Report | reporter, listing, reason, description, status, timestamps | Supports review queues and a record of the outcome. |
 | Review | author, listing, optional room/stay reference, rating, text, moderation state | Future-only. Reviews must be tied to a real, eligible interaction before being presented as trustworthy. |
 
-### Supabase schema staged in Milestone 005A
+### Supabase schema staged in migrations
 
-The migration turns the core concepts into 18 relational tables:
+The initial migration creates the core marketplace tables; the operations
+migration adds eight transaction/trust tables, for 26 relational tables total:
 
 - Identity and roles: `profiles`, `roles`, `user_roles`.
 - Provider ownership/team access: `provider_businesses`,
@@ -102,6 +106,9 @@ The migration turns the core concepts into 18 relational tables:
   `listing_rooms`, `property_facilities`.
 - Media and availability: `listing_media`, `availability`.
 - Administrative audit: `moderation_actions`, `verification_events`.
+- Student/provider workflows: `enquiries`, `bookings`, `booking_events`.
+- Payments and trust: `payments`, `reviews`, `listing_reports`,
+  `notifications`, `platform_audit_events`.
 
 The hierarchy is `provider_business -> properties -> listings -> listing_rooms`.
 `listing_rooms` holds amount, currency, pricing period, occupancy, quantity, and
@@ -110,9 +117,10 @@ Media rows store bucket/path metadata for images or videos, not file bytes.
 Provider verification, property verification, listing publication, and
 availability are stored independently.
 
-Saved properties, enquiries/viewing requests, reports, reviews, bookings, and
-payments are intentionally deferred; no Storage bucket or upload policy is
-created in this foundation.
+Saved-property synchronization is not implemented. A private `listing-media`
+bucket is declared in the later migration, but no image processing pipeline or
+frontend upload flow is connected. Migration policy correctness remains
+unverified until local database tests are run.
 
 ### Example record shapes
 
@@ -442,9 +450,36 @@ contact information is therefore demonstration data only and must not be used
 for real personal or sensitive information. The local layer is not a backend,
 account-level persistence, or a production privacy boundary.
 
-The staged Supabase schema is not connected and does not yet include all
-fields used by the local workflow. In particular, its rental-period enum does
-not match the local `monthly`/`other` values, and the migration does not define
-the enquiry records used here. Before a future database integration, reconcile
-these fields and lifecycle rules in a reviewed migration; do not treat local
-records as SQL-backed or migrate them implicitly.
+The Supabase schema is not connected to the student/provider marketplace UI
+and does not mirror every local form field. In particular, the SQL rental
+periods (`month`, `semester`, `academic_year`) do not yet match the local
+`monthly`/`other` values; the database enquiry relationship is present but no
+live enquiry repository is wired. Resolve these differences in a reviewed
+migration before integrating the live repositories. Never treat local records
+as SQL-backed or migrate them implicitly.
+
+## Current integration boundary
+
+- **Authentication scaffold:** Supabase email registration, sign-in, email-link
+  callback, password reset, session loading, profile/role reads, protected
+  routes, and provider business onboarding use the public Supabase client.
+  Email delivery and authorization still require project configuration and
+  real database testing. The registration account-type field is only routing
+  metadata; it never grants provider or administrator permission.
+- **Administration scaffold:** `/admin` loads a capped set of records and uses
+  database RPCs for moderation, verification, reports, reviews, and account
+  state. The SQL functions enforce roles and record audit events. No
+  administrator can be self-assigned from the frontend.
+- **Payment scaffold:** Edge Functions initialize and server-verify Paystack
+  transactions; the browser callback never marks a payment successful by
+  itself. SQL idempotency and booking/payment transition functions are present.
+  There is no booking request UI or payment initiation UI, and the functions
+  have not been tested against a sandbox project.
+- **Not integrated:** The student/provider property, listing, room-offer, and
+  enquiry screens continue to use local demo repositories in demo mode.
+  Supabase mode blocks these marketplace routes rather than silently showing
+  local demo records as production data.
+- **Not launch-ready:** Database migrations, RLS policy tests, real email
+  delivery, image processing, server-backed marketplace repositories, booking
+  history, provider booking queue, sandbox payment flow, SEO/domain setup,
+  monitoring, and deployment remain incomplete or unverified.

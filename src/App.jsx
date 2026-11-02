@@ -17,6 +17,13 @@ import ProviderListingFormPage from "./pages/provider/ProviderListingFormPage";
 import ProviderListingPreviewPage from "./pages/provider/ProviderListingPreviewPage";
 import ProviderEnquiriesPage from "./pages/provider/ProviderEnquiriesPage";
 import ProviderEnquiryDetailPage from "./pages/provider/ProviderEnquiryDetailPage";
+import AuthPage from "./pages/AuthPage";
+import ProviderOnboardingPage from "./pages/ProviderOnboardingPage";
+import RequireAuth from "./components/RequireAuth";
+import { isExplicitDemoMode, isExplicitSupabaseMode, supabaseConfigured } from "./data/supabaseClient";
+import { AuthProvider } from "./auth/AuthProvider";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import PaymentCompletePage from "./pages/PaymentCompletePage";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -32,19 +39,53 @@ function ScrollToTop() {
   return null;
 }
 
-export default function App() {
+function AppRoutes() {
   const { pathname } = useLocation();
   const isProviderRoute = pathname === "/provider" || pathname.startsWith("/provider/");
+  const isAuthRoute = pathname.startsWith("/auth/");
+  const isProviderOnboardingRoute = pathname === "/provider/onboarding";
+  const isAdminRoute = pathname === "/admin";
+  const isPaymentCompleteRoute = pathname === "/payment/complete";
+  const explicitDemoMode = isExplicitDemoMode || (
+    import.meta.env.DEV && !isExplicitSupabaseMode && !supabaseConfigured
+  );
+
+  if (isAdminRoute && (!isExplicitSupabaseMode || !supabaseConfigured)) {
+    return <main className="auth-page"><section className="auth-card" role="alert"><h1>Administrator console unavailable</h1><p>Admin tools require an explicitly configured Supabase data mode and a server-authorized administrator role.</p></section></main>;
+  }
+
+  if (!explicitDemoMode && !isAuthRoute && !isProviderOnboardingRoute && !isAdminRoute && !isPaymentCompleteRoute) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card" role="alert">
+          <p className="provider-eyebrow">PRODUCTION DATA SAFETY</p>
+          <h1>Marketplace backend is not ready</h1>
+          <p>
+            This deployment will not fall back to browser demo listings. The Supabase
+            repositories, production data policies, and project configuration must
+            be completed before marketplace routes can be enabled.
+          </p>
+          {!supabaseConfigured && <p>Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for authentication.</p>}
+          <Link className="provider-outline-button" to="/auth/login">Go to sign in <ArrowRight size={16} /></Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <>
       <ScrollToTop />
       {!isProviderRoute && <Navbar />}
       <Routes>
+        <Route path="/auth/:mode" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthPage />} />
+        <Route path="/payment/complete" element={<RequireAuth role="student"><PaymentCompletePage /></RequireAuth>} />
+        <Route path="/provider/onboarding" element={<RequireAuth><ProviderOnboardingPage /></RequireAuth>} />
+        <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboardPage /></RequireAuth>} />
         <Route path="/" element={<HomePage />} />
         <Route path="/properties/:id" element={<PropertyPage />} />
         <Route path="/about" element={<AboutPage />} />
-        <Route path="/provider" element={<ProviderLayout />}>
+        <Route path="/provider" element={<RequireAuth role="provider"><ProviderLayout /></RequireAuth>}>
           <Route index element={<ProviderDashboardPage />} />
           <Route path="properties" element={<ProviderPropertiesPage />} />
           <Route
@@ -86,5 +127,13 @@ export default function App() {
       </Routes>
       {!isProviderRoute && <Footer />}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }

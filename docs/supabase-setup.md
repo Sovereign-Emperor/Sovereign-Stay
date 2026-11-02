@@ -1,162 +1,149 @@
-# Local Supabase development setup
+# Supabase development and deployment setup
 
-This guide covers the Milestone 005A database foundation. It does not configure
-the frontend to use Supabase, create accounts, upload media, or connect a remote
-project. The React app continues to use its local demo repository.
+Supabase authentication and database/Edge Function scaffolding are present.
+The student/provider marketplace is still backed by browser-local demo
+repositories, so selecting Supabase mode intentionally blocks those routes.
+No project is linked and no migration or Edge Function has been deployed.
 
-## Required tools
+## Local database validation
 
-- Node.js and npm for the existing frontend.
-- Supabase CLI for local Supabase commands.
-- Docker Desktop (or a compatible Docker Engine) running for Supabase local
-  services.
-
-At the time this foundation was prepared, the Supabase CLI, Docker CLI, and
-PostgreSQL command-line client were not available in the development
-environment. The repository structure and SQL were therefore prepared without
-starting a local database. Use the official Supabase CLI installation guide
-for your operating system; do not install a global CLI through an untrusted
-script.
-
-## Start the local stack
-
-From the repository root, after installing the CLI and starting Docker:
+You need Node.js/npm, the Supabase CLI, and Docker Desktop (or a compatible
+Docker Engine). From the repository root:
 
 ```sh
-supabase start
+npx supabase start
+npx supabase db reset
+npx supabase db lint --local
+npm test
 ```
 
-The local API, database, Studio, and email-testing endpoints are shown in the
-CLI output. This project has not been linked to any remote Supabase project.
+`db reset` recreates the local database and applies every migration and seed;
+it deletes local development database contents. Use it only when that reset is
+acceptable. The configured seed contains catalogues and roles, not users,
+credentials, or real accommodation.
 
-Apply migrations and seed the local database:
+The schema history currently contains:
 
-```sh
-supabase db reset
-```
+- `20261101000100_initial_marketplace_schema.sql` — identity, provider
+  memberships, properties, listings, room offers, media metadata, RLS,
+  moderation and verification functions.
+- `20261102000100_marketplace_operations_and_payments.sql` — enquiries,
+  bookings and status history, payments, reviews, reports, notifications,
+  audit events, additional RLS, and a private `listing-media` bucket.
 
-`db reset` recreates the local database, applies every file in
-`supabase/migrations/`, then applies `supabase/seed.sql`. It deletes local
-development database contents, so use it only when resetting local data is
-acceptable.
+Do not edit applied migrations. Create a new migration for later changes and
+review it locally before any remote push. This repository has no production
+project reference; never run `db push` against production without explicit
+approval, backup, reviewed diff, and tested RLS behavior.
 
-The auth-user trigger expects the seeded `student` role to exist before
-sign-up. `db reset` applies the configured seed after migrations; do not enable
-account creation against a database where the role seed has not been applied.
+## Frontend mode and public configuration
 
-Useful local checks:
-
-```sh
-supabase status
-supabase migration list
-supabase db lint --local
-```
-
-`db lint` availability and options can vary by CLI version. If that command is
-not available, use the installed CLI's `supabase db --help` and run the local
-reset plus the database policy tests added in a later milestone.
-
-Stop local services when finished:
-
-```sh
-supabase stop
-```
-
-## Migration and seed files
-
-- `supabase/config.toml` configures the local project ports and API schema.
-- `supabase/migrations/20261101000100_initial_marketplace_schema.sql` creates
-  the initial tables, constraints, indexes, helper functions, and RLS policies.
-- `supabase/seed.sql` inserts roles, common room types, and facility names only.
-  It does not create users, listings, credentials, or public demo accommodation.
-
-Create future migrations with the CLI:
-
-```sh
-supabase migration new descriptive_change_name
-```
-
-Edit the generated SQL migration, then validate locally with `supabase db
-reset` before committing it. Treat committed migrations as the schema history;
-do not edit an already-applied migration to make changes to an existing
-environment—add a new migration instead.
-
-## Environment variables
-
-No Supabase client is used by the frontend in this milestone. When a later
-approved milestone connects the frontend, only public client configuration
-belongs in Vite variables:
+Copy `.env.example` to `.env.local`. For the browser-local demonstration
+workspace, explicitly set:
 
 ```env
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_DATA_MODE=demo
 ```
 
-Use the project’s current `.env.example` pattern for documenting public
-configuration, and keep machine-specific values in `.env.local`. The existing
-`.gitignore` already excludes `.env` and `.env.*` while allowing
-`.env.example`.
+To try the Supabase authentication and administrator scaffolding, configure
+your own non-production project:
 
-**Never place a database password, access token, service-role key, or other
-secret in a `VITE_` variable.** Vite bundles `VITE_` values into browser
-JavaScript. RLS is required even with the public anon key. Service-role keys
-bypass RLS and must only be used in a trusted server/automation environment
-with tightly controlled access.
+```env
+VITE_DATA_MODE=supabase
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
+```
 
-## Linking a remote development project later
+Use the Supabase publishable/anon key only. It is browser-visible; RLS and
+database authorization are required. The Supabase-mode marketplace routes
+remain blocked because property/listing/enquiry repositories are not wired to
+the database. Authentication requires email provider configuration and email
+delivery in the Supabase dashboard. Configure the allowed redirect URLs for
+`/auth/callback` and `/auth/reset`.
 
-This repository is intentionally not linked to a remote project. When a
-separate development Supabase project has been created and its owner approves
-remote work, install/authenticate the CLI and link using its project reference:
+Vite variables are embedded in the frontend. Never put a database password,
+service-role key, Paystack secret, email-provider key, or other private
+credential in a `VITE_` variable. The `.gitignore` excludes machine-specific
+`.env` files.
+
+## Edge Functions and Paystack sandbox
+
+The following functions are scaffolding, not a fully connected booking
+checkout:
+
+- `paystack-initiate` creates a payment attempt for a student-owned accepted
+  booking and initializes Paystack using a server-derived GHS amount.
+- `paystack-verify` retrieves transaction status from Paystack and only marks
+  a booking paid through the service-role database function after amount,
+  currency, reference, and booking ownership checks.
+- `paystack-webhook` validates Paystack's HMAC signature, re-fetches the
+  transaction from Paystack, then applies the idempotent database transition.
+
+There is a verification callback page, but the marketplace has no live booking
+request or payment-initiation UI. The payment amount currently represents the
+full accepted room-price snapshot; deposit and fee policy requires product
+approval before enabling checkout.
+
+Only when a separate sandbox Supabase project and Paystack test credentials
+are available, configure Edge Function secrets through the Supabase CLI or
+dashboard (never commit them):
 
 ```sh
-supabase login
-supabase link --project-ref YOUR_DEVELOPMENT_PROJECT_REF
-supabase db push
+npx supabase secrets set APP_ORIGIN=https://your-sandbox-app.example
+npx supabase secrets set PAYSTACK_SECRET_KEY=YOUR_PAYSTACK_TEST_SECRET
+npx supabase secrets set SUPABASE_ANON_KEY=YOUR_PROJECT_ANON_KEY
+npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_PROJECT_SERVICE_ROLE_KEY
+npx supabase functions deploy paystack-initiate
+npx supabase functions deploy paystack-verify
+npx supabase functions deploy paystack-webhook
 ```
 
-Do not use production project references for development. Do not put database
-passwords on command lines, in source control, or in this documentation.
-Review the migration diff, target project, backups, RLS behavior, and approval
-before any future remote migration. No remote password was requested or used
-for this milestone.
+`APP_ORIGIN` must be the exact allowed browser origin without a trailing path.
+Configure Paystack's sandbox webhook endpoint as
+`https://YOUR_PROJECT_REF.supabase.co/functions/v1/paystack-webhook` and enable
+charge-success and charge-failed events. The webhook function disables gateway
+JWT verification in `supabase/config.toml` because it authenticates requests
+with the Paystack signature; the other functions verify the signed Supabase
+user session themselves. Use only Paystack test credentials. Live payments
+require explicit owner approval, real credentials, full testing, and a
+confirmed product decision.
 
-## Security notes
+## Authorization and administrator setup
 
-- RLS is enabled for every application table in the initial migration.
-- Anonymous reads are limited to published listings and associated public-safe
-  records. Lookup catalogues are public; profiles and business membership data
-  are not.
-- Creator IDs, provider business IDs, uploader IDs, and availability editor
-  IDs are not granted to ordinary public-facing reads.
-- Provider access follows database business membership, never a role or
-  `ownerId` supplied by the browser.
-- No client policy can mutate `user_roles`. The provider onboarding and
-  membership functions only create a business for the signed-in user or add
-  an existing user as manager/editor when called by that business's owner.
-- Publishing and verification changes are limited to narrow administrator
-  functions. There is no default admin account or self-service admin role
-  assignment.
-- `SECURITY DEFINER` functions fix `search_path`, use qualified table names,
-  have execute grants restricted to authenticated users, and perform their
-  own authorization checks. Re-review these functions as they evolve.
-- Initial authenticated clients receive only public-safe columns on properties,
-  listings, media, and availability. Query explicit allowed columns rather
-  than `*`; owner-only rejection reasons and management identifiers need
-  future owner-authorized operations.
-- This foundation intentionally prevents providers from editing published
-  listings or reactivating archived listings until the moderated edit workflow
-  is implemented. Membership invitation UX and owner-only review details also
-  remain future work.
-- The migration does not create a Storage bucket or Storage policies. Media
-  metadata is modeled, but uploads must wait for a separate implementation
-  with private storage, ownership validation, file restrictions, and policy
-  tests.
+New users receive only the student role from the auth trigger. Provider
+onboarding calls a database function that assigns provider access after
+checking the verified session. The account-type selection in the signup UI is
+metadata for routing only; it does not grant authorization. No default
+administrator exists, and the browser has no operation to assign itself an
+admin role. A trusted database operator must provision the first administrator
+through a separately secured process.
 
-## Current limitation
+The `/admin` page is available only in explicitly configured Supabase mode.
+It calls restricted moderation, verification, report, review, and account
+status functions. Those operations are enforced by SQL authorization checks
+and write audit records. Lists are capped at 100 records per category and are
+not platform-wide metric totals. Database authorization and RLS still require
+tests with anonymous, student, separate provider-business, and admin users
+before real data is used.
 
-The migration has not yet been applied or parsed by PostgreSQL because the
-required local Supabase CLI and Docker services were unavailable. Before using
-this schema for real accounts, run `supabase db reset` locally and add
-automated RLS tests using anonymous, student, separate provider-business,
-manager/editor, and administrator identities.
+The private media bucket restricts object operations by listing membership and
+listing lifecycle. This is not a complete upload-security pipeline: image
+processing, metadata creation, malware scanning, signed-URL lifecycle, and
+browser upload UI are not implemented.
+
+## Current validation and launch blockers
+
+- No Supabase project is linked and no database migration has been applied.
+- Docker is unavailable in the current development environment, so local
+  PostgreSQL parsing, migration execution, and RLS tests cannot be claimed.
+- Supabase Auth email delivery, Paystack sandbox credentials/webhook, and
+  production secrets are not configured.
+- The marketplace frontend still uses local demo repositories; bookings,
+  booking history, provider booking queue, payment initiation, live enquiries,
+  production image uploads, and user-management APIs are incomplete.
+- No production hosting target/domain, monitoring, email service, backup plan,
+  or deployment pipeline has been configured or verified.
+
+For these reasons the project is **not production-ready**. Do not deploy the
+new migration or enable payments in a live project until the blockers above
+are resolved and the security and end-to-end workflows are verified.

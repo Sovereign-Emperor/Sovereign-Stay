@@ -2,7 +2,7 @@
 
 A mobile-first student accommodation discovery MVP for students around Koforidua Technical University (KTU). It is built with React, Vite, React Router, Tailwind CSS v4, and Lucide icons.
 
-> **Demo data:** The properties, photos, prices, and example room counts in this frontend are illustrative only—not verified real-world listings or live availability. The frontend is not connected to a database or authentication service; there is no payment processing.
+> **Prototype status:** All browser-local property data is illustrative and is not verified real-world accommodation or live availability. Supabase authentication and server-side payment verification scaffolding are included, but the marketplace repositories, booking screens, and payment initiation UI are not connected. Do not treat this repository as production-ready.
 
 ## Run locally
 
@@ -21,6 +21,8 @@ A mobile-first student accommodation discovery MVP for students around Koforidua
    ```
 
    Use an international WhatsApp number with digits only. If the number is blank, enquiry links open WhatsApp with a pre-filled message so the student can choose a contact.
+
+   For local sample listings, explicitly set `VITE_DATA_MODE=demo`. The Vite development server also uses the demo workspace when no Supabase project is configured. Do not use demo mode for a production deployment. `VITE_DATA_MODE=supabase` currently enables the authentication/admin scaffolding only; it deliberately blocks marketplace routes until live repositories are implemented.
 
    Vite embeds variables prefixed with `VITE_` in browser code. Use them only for contact details intentionally made public; never put passwords, API secrets, or private credentials in these variables.
 
@@ -59,21 +61,22 @@ Vitest runs the tests in a simulated browser environment (jsdom). React Testing 
 src/
   components/       Shared navigation, listing UI, and reusable provider dashboard pieces
   config.js         Environment-configurable public contact details
-  data/               Related demo marketplace records and local repositories
+  data/               Demo marketplace records, local repositories, and Supabase client
   hooks/              React hooks for service-backed listing loading and paging
   pages/              Public pages and nested provider workspace routes
-  services/           Listing and provider dashboard application logic
+  services/           Listing/provider logic, authentication, and admin actions
   test/                Shared Vitest and Testing Library setup
   utils/               Filtering, formatting, and listing-to-UI mapping
   App.jsx              App shell and client-side routes
   index.css            Tailwind import and responsive design system
   main.jsx             React entry point
 docs/
-  data-model.md       Milestone 004 data model and future architecture
+  data-model.md       Local data model, Supabase schema, and boundaries
   supabase-setup.md   Local Supabase setup, migrations, and security notes
 supabase/
   config.toml         Local Supabase CLI configuration
-  migrations/         Versioned PostgreSQL schema and RLS foundation
+  functions/          Sandbox Paystack server-side function scaffolding
+  migrations/         Versioned PostgreSQL schema, RLS, and marketplace operations
   seed.sql            Safe lookup catalogue values only
 ```
 
@@ -82,8 +85,8 @@ files. They cover discovery, provider property and listing workflows, room
 offer validation, local enquiry submission, ownership checks, and regressions.
 Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
 listing lifecycle, local demo storage, and the planned backend architecture.
-Read [docs/supabase-setup.md](./docs/supabase-setup.md) for the local database
-foundation, required tools, migration commands, and security warnings.
+Read [docs/supabase-setup.md](./docs/supabase-setup.md) for local database
+setup, Edge Function secrets, migration commands, and security warnings.
 
 ## What works in this MVP
 
@@ -122,10 +125,22 @@ providers can filter the inbox and update enquiry status. The WhatsApp action
 remains a separate contact option and explicitly describes the listing as a
 demo example.
 
-The initial Supabase SQL schema and lookup seed are staged under `supabase/`.
-They are not connected to the frontend or a remote project. The current SQL
-schema has not yet been migrated to cover all local demo fields, rental-period
-values, or enquiries. Local database validation requires the Supabase CLI and
-Docker; see the setup guide for commands and the current validation limitation.
-Authentication, server-enforced ownership, public publishing, moderation,
-server persistence, and real-time communication remain future work.
+The Supabase migrations now stage account/profile roles, properties, listings,
+room offers, enquiries, bookings, payment records, reviews, reports,
+notifications, audit events, RLS policies, and a private listing-media bucket.
+The frontend includes Supabase email-auth scaffolding, an administrator console,
+and server-side Paystack initiate/verify/webhook functions. These database and
+Edge Function changes have not been applied or exercised against a local or
+remote Supabase project. The current student/provider marketplace remains
+browser-local; no live listing/property/enquiry repository or booking request
+flow is wired yet. The payment callback verifies with the server, but there is
+no UI to create bookings or initiate a payment. The admin screen is available
+only in explicitly configured Supabase mode and every operation relies on
+database authorization; its first 100 rows per record category are shown.
+
+**Not production-ready:** no Supabase project is linked, migration/RLS tests
+have not run, and no credentials, email delivery, Paystack sandbox webhook,
+monitoring, hosting target, or domain have been configured. Do not use live
+payments. The payment function charges the accepted room's full price snapshot
+in GHS; deposit or fee rules need product approval before launch. See
+[docs/supabase-setup.md](./docs/supabase-setup.md) for exact setup and blockers.
