@@ -162,4 +162,43 @@ describe("ProviderImageUpload", () => {
     expect(screen.getByText("bathroom.png")).toBeInTheDocument();
     expect(screen.getAllByRole("img", { name: /Preview of/ })).toHaveLength(2);
   });
+
+  it("reports selected files, cover changes, and removals to its parent form", async () => {
+    const user = userEvent.setup();
+    const onImagesChange = vi.fn();
+    render(<ProviderImageUpload onImagesChange={onImagesChange} />);
+
+    await user.upload(getPhotoInput(), [
+      makeImageFile("bedroom.jpg"),
+      makeImageFile("exterior.webp", "image/webp"),
+    ]);
+    expect(onImagesChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ name: "bedroom.jpg", isCover: true }),
+      expect.objectContaining({ name: "exterior.webp", isCover: false }),
+    ]);
+
+    await user.click(screen.getByRole("button", { name: "Set exterior.webp as cover photo" }));
+    expect(onImagesChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ name: "bedroom.jpg", isCover: false }),
+      expect.objectContaining({ name: "exterior.webp", isCover: true }),
+    ]);
+    await user.click(screen.getByRole("button", { name: "Remove bedroom.jpg" }));
+    expect(onImagesChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ name: "exterior.webp", isCover: true }),
+    ]);
+  });
+
+  it("restores persisted images and their cover selection in edit mode", async () => {
+    const file = makeImageFile("saved-cover.png", "image/png");
+    render(
+      <ProviderImageUpload
+        initialImages={[{ id: "stored-photo", file, name: file.name, isCover: true }]}
+      />,
+    );
+
+    expect(await screen.findByRole("img", { name: "Preview of saved-cover.png" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("Cover photo")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove saved-cover.png" })).toBeInTheDocument();
+  });
 });

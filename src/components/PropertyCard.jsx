@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, Heart, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import PropertyImage from "./PropertyImage";
+import ListingImage from "./ListingImage";
 import { formatPrice } from "../utils/format";
 
 /**
@@ -21,9 +21,9 @@ export default function PropertyCard({ property }) {
           className="property-card-image-link"
           aria-label={`View ${property.name}`}
         >
-          <PropertyImage
-            photoId={property.photos[0]}
-            alt={`Illustrative accommodation photo for ${property.name}`}
+          <ListingImage
+            photo={property.photos[0]}
+            alt={`Accommodation photo for ${property.name}`}
             width={760}
             loading="lazy"
             className="property-card-image"
@@ -39,7 +39,7 @@ export default function PropertyCard({ property }) {
         >
           <Heart size={18} fill={saved ? "currentColor" : "none"} />
         </button>
-        <span className="photo-note-pill">ILLUSTRATIVE PHOTO</span>
+        <span className="photo-note-pill">{property.photos[0]?.isLocal ? "LOCAL DEMO PHOTO" : "PHOTO FOR ILLUSTRATION"}</span>
       </div>
       <div className="property-card-content">
         <div className="property-card-heading">
@@ -52,12 +52,16 @@ export default function PropertyCard({ property }) {
         </div>
         <p className="property-location"><MapPin size={15} />{property.location}</p>
         <div className="property-meta">
-          <span>Approx. {property.distanceKm} km to KTU</span>
+          <span>{Number.isFinite(property.distanceKm) ? `Approx. ${property.distanceKm} km to KTU` : "Distance not specified"}</span>
           <span>{property.roomType}</span>
         </div>
-        <p className="example-availability">Example room count: {property.availableRooms}</p>
+        <p className="example-availability">
+          {property.availabilityStatus === "unknown"
+            ? "Availability not confirmed"
+            : `${property.availableRooms} reported room${property.availableRooms === 1 ? "" : "s"} · ${property.availabilityStatus}`}
+        </p>
         <div className="property-card-footer">
-          <p><strong>{formatPrice(property.price)}</strong><span> / semester · example</span></p>
+          <p>{property.price != null ? <><strong>{formatPrice(property.price)}</strong><span> / {String(property.pricePeriod ?? "period").replaceAll("_", " ")} · demo</span></> : <strong>Price not provided</strong>}</p>
           <Link className="card-link" to={`/properties/${property.id}`} aria-label={`See details for ${property.name}`}>
             <ArrowUpRight size={19} />
           </Link>

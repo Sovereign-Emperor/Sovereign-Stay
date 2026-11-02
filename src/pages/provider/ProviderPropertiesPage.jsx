@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Building2, FileText, ListChecks, Plus, Search, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ProviderMetricCard from "../../components/provider/ProviderMetricCard";
 import ProviderPropertyCard from "../../components/provider/ProviderPropertyCard";
 import { DEMO_PROVIDER_ID } from "../../data/demoProviderRepository";
@@ -35,9 +35,27 @@ const propertyMetrics = [
 ];
 
 export default function ProviderPropertiesPage() {
-  const dashboard = getProviderDashboard(DEMO_PROVIDER_ID);
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  let dashboard;
+  let dashboardError = "";
+  try {
+    dashboard = getProviderDashboard(DEMO_PROVIDER_ID);
+  } catch (error) {
+    dashboardError = error.message;
+  }
+
+  if (dashboardError) {
+    return (
+      <div className="provider-page provider-empty-state" role="alert">
+        <h2>Properties could not be loaded</h2>
+        <p>{dashboardError}</p>
+        <p>Check this browser&apos;s available storage, then reload the page.</p>
+      </div>
+    );
+  }
+
   const properties = filterProviderProperties(dashboard.properties, { query, status });
   const hasFilters = Boolean(query.trim() || status);
 
@@ -62,6 +80,13 @@ export default function ProviderPropertiesPage() {
       <Link className="provider-back-link" to="/provider">
         <ArrowLeft size={15} /> Back to overview
       </Link>
+
+      {location.state?.notice && (
+        <div className="provider-form-success" role="status">
+          <p>{location.state.notice}</p>
+          {location.state.warnings?.map((warning) => <p key={warning}>{warning}</p>)}
+        </div>
+      )}
 
       <section className="provider-management-metrics" aria-label="Property summary">
         {propertyMetrics.map(({ key, label, summaryKey, icon }) => (
@@ -132,7 +157,7 @@ export default function ProviderPropertiesPage() {
           <div className="provider-empty-state">
             <Building2 size={24} aria-hidden="true" />
             <h3>No properties in this demo workspace</h3>
-            <p>Properties added in a future milestone will appear here.</p>
+            <p>Add a property to keep its details in this browser&apos;s demo workspace.</p>
           </div>
         ) : (
           <div className="provider-empty-state">
@@ -147,8 +172,8 @@ export default function ProviderPropertiesPage() {
       </section>
 
       <p className="provider-page-disclaimer">
-        Demo properties, listing statuses, photos, and prices are illustrative only—not real offers
-        or live availability.
+        Fixture listings are illustrative. Properties you add are saved only in this browser and
+        are not real offers or live availability.
       </p>
     </div>
   );

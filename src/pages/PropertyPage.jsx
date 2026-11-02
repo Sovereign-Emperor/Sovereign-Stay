@@ -1,11 +1,19 @@
 import { useCallback, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, BedDouble, Check, Clock3, MapPin, ShieldCheck, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import ListingEnquiryForm from "../components/ListingEnquiryForm";
+import ListingImage from "../components/ListingImage";
 import PhotoGallery from "../components/PhotoGallery";
-import PropertyImage from "../components/PropertyImage";
 import WhatsAppLink from "../components/WhatsAppLink";
 import { useListingById } from "../hooks/useListings";
 import { formatPrice } from "../utils/format";
+
+const pricePeriodLabel = (period) => ({
+  monthly: "month",
+  semester: "semester",
+  academic_year: "academic year",
+  other: "rental period",
+}[period] ?? String(period ?? "period").replaceAll("_", " "));
 
 export default function PropertyPage() {
   const { id } = useParams();
@@ -39,46 +47,59 @@ export default function PropertyPage() {
       <div className="container property-container">
         <Link className="back-link" to="/"><ArrowLeft size={16} /> All places</Link>
         <div className="detail-heading">
-          <div><p className="eyebrow">{property.type} <span className="detail-dot">·</span> {property.area} <span className="detail-dot">·</span> DEMO LISTING</p><h1>{property.name}</h1><p className="detail-address"><MapPin size={16} />{property.location}<span>·</span>approximately {property.distanceKm} km from KTU</p></div>
+          <div><p className="eyebrow">{property.type} <span className="detail-dot">·</span> {property.area || property.location} <span className="detail-dot">·</span> DEMO LISTING</p><h1>{property.name}</h1><p className="detail-address"><MapPin size={16} />{property.location}{Number.isFinite(property.distanceKm) && <><span>·</span>approximately {property.distanceKm} km from KTU</>}</p></div>
           <button type="button" className="share-button" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); window.alert("Property link copied."); } catch { window.prompt("Copy this property link:", window.location.href); } }}><ArrowUpRight size={16} /> Share</button>
         </div>
         <div className="gallery-grid">
-          <button className="gallery-main" onClick={(event) => openGallery(0, event)} aria-label={`Open ${property.name} photo gallery`}>
-            <PropertyImage
-              photoId={property.photos[0]}
+          <button className="gallery-main" disabled={property.photos.length === 0} onClick={(event) => openGallery(0, event)} aria-label={`Open ${property.name} photo gallery`}>
+            <ListingImage
+              photo={property.photos[0]}
               width={1400}
               alt={`${property.name}, illustrative main photo`}
               loading="eager"
               className="gallery-photo"
             />
-            <span className="gallery-label"><span>01</span> / {property.photos.length.toString().padStart(2, "0")} <span className="gallery-label-caption">PHOTOS FOR ILLUSTRATION</span></span>
+            <span className="gallery-label"><span>01</span> / {property.photos.length.toString().padStart(2, "0")} <span className="gallery-label-caption">{property.photos[0]?.isLocal ? "LOCAL DEMO PHOTO" : "PHOTOS FOR ILLUSTRATION"}</span></span>
           </button>
           {property.photos.slice(1, 5).map((photo, index) => (
-            <button className={`gallery-tile gallery-tile-${index + 1}`} key={photo} onClick={(event) => openGallery(index + 1, event)} aria-label={`Open illustrative photo ${index + 2} of ${property.name}`}>
-              <PropertyImage
-                photoId={photo}
+            <button className={`gallery-tile gallery-tile-${index + 1}`} key={photo.id ?? photo} onClick={(event) => openGallery(index + 1, event)} aria-label={`Open photo ${index + 2} of ${property.name}`}>
+              <ListingImage
+                photo={photo}
                 alt={`${property.name}, illustrative photo ${index + 2}`}
                 className="gallery-photo"
               />
             </button>
           ))}
-          <button className="gallery-all-button" onClick={(event) => openGallery(0, event)}>View all photos <ArrowUpRight size={14} /></button>
+          {property.photos.length > 0 && <button className="gallery-all-button" onClick={(event) => openGallery(0, event)}>View all photos <ArrowUpRight size={14} /></button>}
         </div>
 
         <div className="detail-layout">
           <div className="detail-main">
             <section className="detail-summary">
-              <div><p className="eyebrow">{property.school}</p><h2>{property.roomType} <span>·</span> example listing</h2><p className="summary-type">{property.type} in {property.area}</p></div>
+              <div><p className="eyebrow">{property.school || "Student accommodation"}</p><h2>{property.roomType} <span>·</span> demo listing</h2><p className="summary-type">{property.type} in {property.area || property.location}</p>{property.propertyName && <p className="summary-type">Physical property: {property.propertyName}</p>}</div>
               <div className="host-avatar" aria-hidden="true">SS</div>
             </section>
             <div className="detail-facts">
-              <div><BedDouble size={20} /><span><strong>{property.roomType}</strong><small>Room arrangement</small></span></div>
-              <div><Users size={20} /><span><strong>{property.availableRooms} rooms shown</strong><small>Example count only</small></span></div>
-              <div><Clock3 size={20} /><span><strong>Not verified</strong><small>No live availability data</small></span></div>
+              <div><BedDouble size={20} /><span><strong>{property.roomOffers.length} room options</strong><small>Listed on this advertisement</small></span></div>
+              <div><Users size={20} /><span><strong>{property.availableRooms} reported rooms</strong><small>Provider-reported demo data</small></span></div>
+              <div><Clock3 size={20} /><span><strong>{property.availabilityStatus === "unknown" ? "Not confirmed" : property.availabilityStatus}</strong><small>No real-time availability feed</small></span></div>
             </div>
             <section className="detail-section">
               <p className="eyebrow">THE FEELING</p><h3>A good place to land.</h3><p className="detail-description">{property.description}</p>
               <div className="highlights-list">{property.highlights.map((highlight) => <span key={highlight}><Check size={16} />{highlight}</span>)}</div>
+            </section>
+            <section className="detail-section" aria-labelledby="student-room-offers-heading">
+              <p className="eyebrow">ROOM OPTIONS</p><h3 id="student-room-offers-heading">Prices and room types</h3>
+              {property.roomOffers.length ? <div className="student-room-offers">{property.roomOffers.map((offer) => (
+                <article key={offer.id}>
+                  <div><h4>{offer.roomTypeLabel ?? offer.roomType}</h4><p>{offer.occupancy} {offer.occupancy === 1 ? "person" : "people"} · {offer.quantity ?? offer.exampleRoomCount} reported room(s)</p></div>
+                  <strong>{formatPrice(offer.price)} <span>/ {pricePeriodLabel(offer.pricePeriod)}</span></strong>
+                  <p>{offer.description || "No room description provided."}</p>
+                  <small>Availability: {offer.availabilityStatus === "unknown" ? "not confirmed" : offer.availabilityStatus}</small>
+                  {offer.deposit != null && <small>Deposit: {formatPrice(offer.deposit)}</small>}
+                  {offer.features && <p>{offer.features}</p>}
+                </article>
+              ))}</div> : <p>No room options have been added to this listing yet.</p>}
             </section>
             <section className="detail-section">
               <p className="eyebrow">THE GOOD STUFF</p><h3>What’s included</h3>
@@ -87,11 +108,12 @@ export default function PropertyPage() {
             <section className="detail-section rules-section">
               <p className="eyebrow">A FEW HOUSE NOTES</p><h3>Good to know</h3>
               <div className="house-rules">{property.rules.map((rule) => <span key={rule}><ShieldCheck size={16} />{rule}</span>)}</div>
-              <p className="availability-note"><Clock3 size={15} /> This demonstration does not represent real availability or a verified property.</p>
+              <p className="availability-note"><Clock3 size={15} /> Local demo listing. No live availability or property verification is provided.</p>
             </section>
             <section className="detail-section location-section">
               <p className="eyebrow">THE NEIGHBOURHOOD</p><h3>Easy to find your way.</h3>
-              <p className="detail-description"><MapPin size={16} />{property.location} <span>·</span> approximately {property.distanceKm} km from KTU</p>
+              <p className="detail-description"><MapPin size={16} />{property.location}{Number.isFinite(property.distanceKm) && <> <span>·</span> approximately {property.distanceKm} km from KTU</>}</p>
+              {property.property && <p className="detail-description">{[property.property.address, property.property.area, property.property.city, property.property.region].filter(Boolean).join(", ")}</p>}
               <a className="map-placeholder" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.location}, Koforidua, Ghana`)}`} target="_blank" rel="noreferrer">
                 <span className="map-grid-pattern" /><span className="map-pin"><MapPin size={20} fill="currentColor" /></span><span className="map-label">{property.area}<small>Koforidua, Ghana</small></span><span className="map-open">Open map <ArrowUpRight size={14} /></span>
               </a>
@@ -100,12 +122,12 @@ export default function PropertyPage() {
           </div>
           <aside className="enquiry-card">
             <p className="eyebrow">A PLACE TO CALL YOURS</p>
-            <p className="enquiry-price"><strong>{formatPrice(property.price)}</strong><span> / semester</span></p>
-            <p className="enquiry-small">Example price · not a live offer</p>
-            <div className="availability-box"><span className="availability-indicator" /><span><strong>Example: {property.availableRooms} rooms</strong><small>Not live or verified</small></span></div>
-            <WhatsAppLink propertyName={property.name} className="enquiry-button">Ask about real options</WhatsAppLink>
-            <p className="enquiry-reassurance"><ShieldCheck size={15} /> It’s okay to ask questions before you visit.</p>
-            <div className="listing-updated"><Clock3 size={14} /> Demonstration data only<span>NOT VERIFIED</span></div>
+            <p className="enquiry-price">{property.price != null ? <><strong>{formatPrice(property.price)}</strong><span> / {pricePeriodLabel(property.pricePeriod)}</span></> : <strong>Price not provided</strong>}</p>
+            <p className="enquiry-small">Example price · local demo</p>
+            <div className="availability-box"><span className="availability-indicator" /><span><strong>{property.availabilityStatus === "unknown" ? "Availability not confirmed" : property.availabilityStatus}</strong><small>Not real-time or verified</small></span></div>
+            <ListingEnquiryForm listingId={property.id} listingName={property.name} />
+            <WhatsAppLink propertyName={property.name} className="listing-whatsapp-link">Ask about real options</WhatsAppLink>
+            <div className="listing-updated"><Clock3 size={14} /> Local demo listing<span>NOT VERIFIED</span></div>
           </aside>
         </div>
         <div className="detail-bottom-cta"><p>Found your kind of place?</p><Link to="/" className="text-link">Explore more stays <ArrowRight size={16} /></Link></div>

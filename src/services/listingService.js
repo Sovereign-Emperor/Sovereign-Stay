@@ -3,7 +3,6 @@ import {
   getDemoListingFilterOptions,
   searchDemoListings,
 } from "../data/demoListingRepository";
-import { toListingViewModel } from "../utils/listingViewModel";
 
 const MAX_PAGE_SIZE = 50;
 
@@ -41,10 +40,8 @@ export async function searchListings({
   }
 
   const result = await searchDemoListings({ filters, sortBy, page, pageSize });
-  const items = result.items.map(toListingViewModel);
-
   return {
-    items,
+    items: result.items,
     total: result.total,
     page,
     pageSize,
@@ -55,7 +52,7 @@ export async function searchListings({
 /** Load the page-ready record for an individual listing route. */
 export async function getListingById(id) {
   const listing = await findDemoListingById(id);
-  return listing ? toListingViewModel(listing) : null;
+  return listing ?? null;
 }
 
 /** Load the values used to populate the discovery filters. */

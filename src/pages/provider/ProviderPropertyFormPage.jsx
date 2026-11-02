@@ -1,8 +1,15 @@
-import { useState } from "react";
-import { ArrowLeft, Check, MapPin, Building2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, MapPin, Building2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ProviderImageUpload from "../../components/provider/ProviderImageUpload";
 import { GHANA_REGIONS } from "../../data/ghanaRegions";
+import { DEMO_PROVIDER_ID } from "../../data/demoProviderRepository";
+import {
+  createProviderProperty,
+  getProviderDashboard,
+  getProviderPropertyImages,
+  updateProviderProperty,
+} from "../../services/providerDashboardService";
 import { validatePropertyForm } from "../../utils/propertyFormValidation";
 
 const accommodationTypes = [
@@ -32,21 +39,77 @@ function getFieldErrorId(field) {
 }
 
 /**
- * Demo property details form. It validates input but deliberately does not
- * persist data or imply that a property has been created.
+ * Create or edit one physical property in the browser-persisted demo workspace.
  */
 export default function ProviderPropertyFormPage() {
+  const { propertyId } = useParams();
+  const navigate = useNavigate();
+  const isEditing = Boolean(propertyId);
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [submissionMessage, setSubmissionMessage] = useState("");
+  const [submissionError, setSubmissionError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReady, setIsReady] = useState(!propertyId);
+  const [loadError, setLoadError] = useState("");
+  const [photos, setPhotos] = useState([]);
+  const submitLock = useRef(false);
+
+  useEffect(() => {
+    if (!propertyId) return;
+
+    let active = true;
+    setIsReady(false);
+    setLoadError("");
+    setPhotos([]);
+    try {
+      const property = getProviderDashboard(DEMO_PROVIDER_ID)?.properties
+        .find((record) => record.id === propertyId);
+      if (!property) {
+        setLoadError("This property could not be found in your provider workspace.");
+        setIsReady(true);
+        return () => {
+          active = false;
+        };
+      }
+
+      setValues({
+        name: property.name,
+        type: property.type,
+        description: property.description,
+        region: property.region,
+        city: property.city,
+        area: property.area,
+        address: property.address,
+        institution: property.institution,
+      });
+
+      getProviderPropertyImages(DEMO_PROVIDER_ID, propertyId)
+        .then((savedImages) => {
+          if (active) setPhotos(savedImages.map((image) => ({ ...image, isCover: image.isCover })));
+        })
+        .catch((error) => {
+          if (active) setLoadError(error.message);
+        })
+        .finally(() => {
+          if (active) setIsReady(true);
+        });
+    } catch (error) {
+      setLoadError(error.message);
+      setIsReady(true);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [propertyId]);
 
   function updateField(event) {
     const { name, value } = event.target;
     const nextValues = { ...values, [name]: value };
     setValues(nextValues);
-    setSubmissionMessage("");
+    setSubmissionError("");
 
     if (touched[name] || hasSubmitted) {
       const allErrors = validatePropertyForm(nextValues);
@@ -79,14 +142,15 @@ export default function ProviderPropertyFormPage() {
     }
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (submitLock.current || isSubmitting) return;
     setHasSubmitted(true);
     setTouched(Object.fromEntries(requiredFields.map((field) => [field, true])));
 
     const nextErrors = validatePropertyForm(values);
     setErrors(nextErrors);
-    setSubmissionMessage("");
+    setSubmissionError("");
 
     const firstInvalidField = requiredFields.find((field) => nextErrors[field]);
     if (firstInvalidField) {
@@ -94,9 +158,38 @@ export default function ProviderPropertyFormPage() {
       return;
     }
 
-    setSubmissionMessage(
-      "Your details pass validation. This demo does not save properties, so nothing has been created.",
-    );
+    submitLock.current = true;
+    setIsSubmitting(true);
+    setSubmissionError("");
+
+    try {
+      if (isEditing) {
+        const result = await updateProviderProperty(
+          DEMO_PROVIDER_ID,
+          propertyId,
+          values,
+          photos,
+        );
+        navigate(`/provider/properties/${propertyId}`, {
+          state: {
+            notice: "Property changes were saved in this browser's demo workspace.",
+            warnings: result.warnings,
+          },
+        });
+      } else {
+        const property = await createProviderProperty(DEMO_PROVIDER_ID, values, photos);
+        navigate(`/provider/properties/${property.id}`, {
+          state: {
+            notice: "Property added to this browser's demo workspace. No listing or room offer was created.",
+          },
+        });
+      }
+    } catch (error) {
+      setSubmissionError(error.message || "The property could not be saved. Please try again.");
+      submitLock.current = false;
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function renderError(field) {
@@ -107,27 +200,45 @@ export default function ProviderPropertyFormPage() {
     ) : null;
   }
 
+  if (!isReady || loadError) {
+    return (
+      <div className="provider-page provider-property-form-page">
+        <Link className="provider-back-link" to="/provider/properties">
+          <ArrowLeft size={15} /> {isEditing ? "Cancel and return to property" : "Cancel and return to properties"}
+        </Link>
+        {!isReady ? (
+          <p role="status" aria-live="polite">Loading property details…</p>
+        ) : (
+          <div className="provider-empty-state" role="alert">
+            <h2>Property could not be loaded</h2>
+            <p>{loadError}</p>
+            <Link className="provider-primary-button" to="/provider/properties">Back to properties</Link>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="provider-page provider-property-form-page">
       <Link className="provider-back-link" to="/provider/properties">
-        <ArrowLeft size={15} /> Cancel and return to properties
+        <ArrowLeft size={15} /> {isEditing ? "Cancel and return to property" : "Cancel and return to properties"}
       </Link>
-
       <header className="provider-form-heading">
         <span className="provider-form-heading-icon" aria-hidden="true">
           <Building2 size={21} />
         </span>
         <div>
-          <p className="provider-eyebrow">PROPERTY SETUP · DEMO</p>
-          <h2>Add a property</h2>
-          <p>Enter the accommodation and location details. Complete every field marked required to continue.</p>
+          <p className="provider-eyebrow">PROPERTY SETUP · LOCAL DEMO</p>
+          <h2>{isEditing ? "Edit property" : "Add a property"}</h2>
+          <p>Enter the accommodation and location details. Complete every field marked required to save.</p>
         </div>
       </header>
 
       <div className="provider-demo-banner" role="note">
         <p>
-          <strong>Demo form.</strong> This form checks your details in the browser only. It does not
-          create or save a property.
+          <strong>Local demo workspace.</strong> Property details and selected photos are saved only
+          in this browser. They are not sent to a server.
         </p>
       </div>
 
@@ -197,7 +308,7 @@ export default function ProviderPropertyFormPage() {
           </div>
         </section>
 
-        <ProviderImageUpload />
+        <ProviderImageUpload initialImages={photos} onImagesChange={setPhotos} />
 
         <section className="provider-form-section" aria-labelledby="property-location-heading">
           <div className="provider-form-section-heading">
@@ -311,16 +422,17 @@ export default function ProviderPropertyFormPage() {
           </div>
         </section>
 
-        {submissionMessage && (
-          <div className="provider-form-success" role="status">
-            <Check size={18} aria-hidden="true" />
-            <p>{submissionMessage}</p>
+        {submissionError && (
+          <div className="provider-form-error-banner" role="alert">
+            <p>{submissionError}</p>
           </div>
         )}
 
         <div className="provider-form-actions">
-          <Link className="provider-outline-button" to="/provider/properties">Cancel</Link>
-          <button className="provider-primary-button" type="submit">Continue</button>
+          <Link className="provider-outline-button" to={isEditing ? `/provider/properties/${propertyId}` : "/provider/properties"}>Cancel</Link>
+          <button className="provider-primary-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : isEditing ? "Save changes" : "Save property"}
+          </button>
         </div>
         <p className="provider-form-required-note"><span aria-hidden="true">*</span> Required fields</p>
       </form>

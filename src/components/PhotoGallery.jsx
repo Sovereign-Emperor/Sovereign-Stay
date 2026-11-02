@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import PropertyImage from "./PropertyImage";
+import ListingImage from "./ListingImage";
 
 /**
  * Accessible modal gallery for a property's illustrative photos.
  *
  * @param {{
- *   photos: string[],
+ *   photos: Array<string | object>,
  *   propertyName: string,
  *   initialIndex: number,
  *   openerRef: { current: HTMLElement | null },
@@ -113,8 +113,8 @@ export default function PhotoGallery({
           <ChevronLeft size={26} />
         </button>
         <figure>
-          <PropertyImage
-            photoId={photos[photoIndex]}
+          <ListingImage
+            photo={photos[photoIndex]}
             width={1800}
             alt={`${propertyName}, illustrative photo ${photoIndex + 1}`}
             loading="eager"

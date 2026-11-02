@@ -109,6 +109,8 @@ export function useListingFilterOptions() {
     schools: [],
     areas: [],
     roomTypes: [],
+    propertyTypes: [],
+    availabilityStatuses: [],
     facilities: [],
   });
   const [error, setError] = useState(null);

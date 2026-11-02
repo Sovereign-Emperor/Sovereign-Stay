@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../../App";
 import { GHANA_REGIONS } from "../../data/ghanaRegions";
 
@@ -14,12 +14,17 @@ function renderPropertyForm(path = "/provider/properties/new") {
   );
 }
 
+afterEach(() => {
+  localStorage.removeItem("sovereign-stay:provider-properties:v1");
+  vi.restoreAllMocks();
+});
+
 describe("provider property creation form", () => {
   it("shows inline errors for every required field and focuses the first invalid field", async () => {
     const user = userEvent.setup();
     renderPropertyForm();
 
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Save property" }));
 
     expect(screen.getByText("Enter a property name.")).toBeInTheDocument();
     expect(screen.getByText("Choose an accommodation type.")).toBeInTheDocument();
@@ -31,7 +36,7 @@ describe("provider property creation form", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("validates all required fields and confirms valid demo details are not saved", async () => {
+  it("creates a browser-local property record after all required fields validate", async () => {
     const user = userEvent.setup();
     renderPropertyForm();
 
@@ -44,12 +49,92 @@ describe("provider property creation form", () => {
       screen.getByLabelText(/Description/),
       "A student accommodation demonstration.",
     );
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Save property" }));
 
     expect(screen.queryByText(/Enter a property name/)).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Your details pass validation. This demo does not save properties, so nothing has been created.",
-    );
+    expect(await screen.findByRole("heading", { name: "Example residence" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("No listing or room offer was created.");
+    const [property] = JSON.parse(localStorage.getItem("sovereign-stay:provider-properties:v1"));
+    expect(property.id).toMatch(/^property-local-/);
+    expect(property.ownerId).toBe("demo-provider-a");
+    expect(property.city).toBe("Koforidua");
+    expect(property.media).toEqual([]);
+  }, 15000);
+
+  it("prevents a rapid duplicate property submission", async () => {
+    const user = userEvent.setup();
+    renderPropertyForm();
+
+    await user.type(screen.getByLabelText(/Property name/), "One example property");
+    await user.selectOptions(screen.getByLabelText(/Accommodation type/), "Hostel");
+    await user.selectOptions(screen.getByLabelText(/Region/), "Eastern");
+    await user.type(screen.getByLabelText(/City or town/), "Koforidua");
+    await user.type(screen.getByLabelText(/Area or neighbourhood/), "Adweso");
+    await user.dblClick(screen.getByRole("button", { name: "Save property" }));
+
+    expect(await screen.findByRole("heading", { name: "One example property" })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem("sovereign-stay:provider-properties:v1"))).toHaveLength(1);
+  });
+
+  it("keeps a created property after the provider page is reloaded", async () => {
+    const user = userEvent.setup();
+    const rendered = renderPropertyForm();
+
+    await user.type(screen.getByLabelText(/Property name/), "Persistent demo property");
+    await user.selectOptions(screen.getByLabelText(/Accommodation type/), "Apartment");
+    await user.selectOptions(screen.getByLabelText(/Region/), "Ashanti");
+    await user.type(screen.getByLabelText(/City or town/), "Kumasi");
+    await user.type(screen.getByLabelText(/Area or neighbourhood/), "Ayeduase");
+    await user.click(screen.getByRole("button", { name: "Save property" }));
+    expect(await screen.findByRole("heading", { name: "Persistent demo property" })).toBeInTheDocument();
+
+    rendered.unmount();
+    renderPropertyForm("/provider/properties");
+    expect(screen.getByRole("heading", { name: "Persistent demo property" })).toBeInTheDocument();
+    expect(screen.getByText("4 properties")).toBeInTheDocument();
+  });
+
+  it("prefills, updates, and persists edits to an existing property", async () => {
+    const user = userEvent.setup();
+    const rendered = renderPropertyForm();
+
+    await user.type(screen.getByLabelText(/Property name/), "Editable local property");
+    await user.selectOptions(screen.getByLabelText(/Accommodation type/), "Apartment");
+    await user.selectOptions(screen.getByLabelText(/Region/), "Volta");
+    await user.type(screen.getByLabelText(/City or town/), "Ho");
+    await user.type(screen.getByLabelText(/Area or neighbourhood/), "Bankoe");
+    await user.click(screen.getByRole("button", { name: "Save property" }));
+    await screen.findByRole("heading", { name: "Editable local property" });
+    const propertyId = JSON.parse(localStorage.getItem("sovereign-stay:provider-properties:v1"))[0].id;
+
+    rendered.unmount();
+    renderPropertyForm(`/provider/properties/${propertyId}/edit`);
+    expect(await screen.findByLabelText(/Property name/)).toHaveValue("Editable local property");
+    await user.clear(screen.getByLabelText(/Property name/));
+    await user.type(screen.getByLabelText(/Property name/), "Updated local property");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(await screen.findByRole("heading", { name: "Updated local property" })).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem("sovereign-stay:provider-properties:v1"))[0].name)
+      .toBe("Updated local property");
+  });
+
+  it("prefills a fixture property and edits it without changing linked listings", async () => {
+    const user = userEvent.setup();
+    renderPropertyForm("/provider/properties/property-greenview/edit");
+
+    expect(await screen.findByLabelText(/Property name/)).toHaveValue("Greenview Student Residences");
+    expect(screen.getByLabelText(/Region/)).toHaveValue("Eastern");
+    expect(screen.getByLabelText(/City or town/)).toHaveValue("Koforidua");
+    await user.clear(screen.getByLabelText(/Property name/));
+    await user.type(screen.getByLabelText(/Property name/), "Greenview physical property");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByRole("heading", { name: "Greenview physical property" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Listings for this property" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Preview listing" }))
+      .toHaveAttribute("href", "/provider/listings/greenview-residences");
   });
 
   it("offers all sixteen Ghana regions from the reusable region catalogue", () => {
@@ -71,7 +156,7 @@ describe("provider property creation form", () => {
     await user.selectOptions(screen.getByLabelText(/Accommodation type/), "Hostel");
     await user.type(screen.getByLabelText(/City or town/), "Kumasi");
     await user.type(screen.getByLabelText(/Area or neighbourhood/), "Ayeduase");
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(screen.getByRole("button", { name: "Save property" }));
 
     expect(screen.getByText("Select a region.")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: /Region/ })).toHaveFocus();

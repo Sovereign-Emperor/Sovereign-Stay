@@ -1,9 +1,9 @@
 # Sovereign Stay data model and growth architecture
 
-This document describes the Milestone 004 model and the boundaries already
-present in the frontend. The application still uses local demonstration data:
-there is no connected database, real account, upload flow, moderation
-workflow, or API. A first Supabase schema migration is staged under
+This document describes the model and boundaries already present in the
+frontend. The application still uses local demonstration data: there is no
+connected database, real account, remote upload flow, moderation workflow, or
+API. A first Supabase schema migration is staged under
 `supabase/migrations/`, but it has not yet been applied or validated against a
 local PostgreSQL instance.
 
@@ -17,6 +17,8 @@ src/
     demoProperties.js         Physical demo property identities and ownership
     demoPropertyRepository.js Provider-scoped property lookup
     demoListingRepository.js  Local repository adapter for the demo records
+    providerPropertyRepository.js Browser-local provider property CRUD
+    propertyImageRepository.js IndexedDB photo-blob storage
   lib/                        Future Supabase browser client (not implemented)
   hooks/
     useListings.js            React loading, errors, request races, and paging
@@ -231,10 +233,13 @@ The database keeps these independent:
 - Listing freshness: `listings.updated_at`, maintained by a database trigger.
 
 The demo providers and listings are unverified; demo availability is
-`unknown`; demo `lastUpdatedAt` values are `null`. Demo listing fixtures have
-`draft` status, but the **demo-only repository intentionally exposes those
-fixtures** so the current discovery experience remains populated. A
-production repository must return only eligible `published` listings.
+`unknown`; fixture `lastUpdatedAt` values may be `null`. Fixture listings are
+marked `published` only so the local demonstration marketplace has example
+discovery content. Student discovery still filters strictly to `published`;
+provider-created drafts remain hidden until explicitly published in the local
+demo. This status is not evidence of real publication, moderation, or
+verification. A production repository must return only eligible,
+server-approved `published` listings.
 
 ## Media and uploads
 
@@ -340,18 +345,16 @@ property summary and each linked listing with its room offers and prices.
 Listing statuses remain separate from property verification and availability.
 
 The current sample has one listing per property, but grouping supports multiple
-advertisements attached to one property. Search and status filters are local
-to this small demo. Property creation/editing, uploads, authentication,
-server-side ownership checks, and persistence remain deferred.
+advertisements attached to one property. Search and status filters are local to this small demo. Listing and room-offer
+creation, authentication, server-side ownership checks, and backend persistence
+remain deferred.
 
 ## Property creation form (Milestone 006.3.1)
 
-`/provider/properties/new` now contains a client-side property details form.
+`/provider/properties/new` contains a client-side property details form.
 Required name, accommodation type, region, city, and area fields are validated
-inline; description, address, and nearby institution are optional. Successful
-validation only reports that the fields are complete. No property record is
-created, no form state is persisted, and there are no uploads, room offers,
-listing creation, editing, authentication, or backend calls in this milestone.
+inline; description, address, and nearby institution are optional. These initial
+validation-only limits were superseded by Milestone 006.3.4 below.
 
 ## Property location details (Milestone 006.3.2)
 
@@ -360,23 +363,88 @@ the complete set of 16 Ghana regions. Region selection is required and
 validated against that catalogue; city/town and area/neighbourhood remain
 required text fields rather than an incomplete city lookup. Street/address
 and nearby institution are optional. The form groups identity, primary
-location, and additional location details separately. Values remain in
-browser component state only and are not persisted.
+location, and additional location details separately.
 
 ## Property photo preview interface (Milestone 006.3.3)
 
 `ProviderImageUpload` accepts multiple JPG/JPEG, PNG, and WebP files up to
-5 MB each. It creates browser object URLs for local thumbnail previews,
-allows removing photos and choosing a cover, and revokes URLs on removal and
-component cleanup. Invalid formats and oversized files produce accessible
-errors; a thumbnail that cannot be previewed falls back to a clear message.
-These files are not included in form submission, uploaded, or stored
-permanently. Image selection remains optional.
+5 MB each. It creates browser object URLs for thumbnail previews, allows
+removing photos and choosing a cover, and revokes URLs on removal and component
+cleanup. Invalid formats and oversized files produce accessible errors; a
+thumbnail that cannot be previewed falls back to a clear message.
 
-## Not included in Milestone 004
+## Provider property workflow (Milestone 006.3.4)
+
+The provider repository at `src/data/providerPropertyRepository.js` stores
+small property records in versioned browser `localStorage`. Photos are stored
+as blobs in the `property-images` IndexedDB object store, with property records
+keeping only photo metadata, order, and cover selection. The service layer
+merges these provider-owned records with immutable demonstration fixtures so
+the dashboard, search, filters, and property details use one view-model path.
+
+Create and edit save physical property records only; they do not create or
+modify advertisements, room offers, or fixture listing relationships. The edit
+route can store a local override for a fixture property while preserving its
+associated listings. Deletion requires confirmation and is blocked when any
+listing or room offer remains linked. A successful property delete never
+cascades into listing data. Browser storage can be cleared or unavailable, and
+there is no account synchronization, server backup, or backend authorization;
+this is a demonstration persistence adapter only.
+
+## Not included in the Milestone 004 baseline
 
 There is no sign-in/session implementation, server-side permission
-enforcement, provider listing creation/editing, admin console, connected
-database/API, upload pipeline, real enquiry persistence, report workflow, or
-review workflow. Those need separate milestones with backend validation,
-privacy/security design, and integration tests.
+enforcement, provider listing/room-offer creation, admin console, connected
+database/API, remote upload pipeline, real enquiry persistence, report
+workflow, or review workflow. Those need separate milestones with backend
+validation, privacy/security design, and integration tests.
+
+## Local provider marketplace workflow (Milestone 006.4)
+
+The browser demo now has separate repositories and service logic for provider
+listings, room offers, and student enquiries. The storage adapters are:
+
+- `providerListingRepository.js` stores listing records and fixture overrides.
+- `providerRoomOfferRepository.js` stores room offers independently from
+  their parent listing.
+- `providerEnquiryRepository.js` stores enquiry submissions and status changes.
+- Existing property metadata remains in `providerPropertyRepository.js`;
+  locally selected property photo blobs remain in IndexedDB.
+
+New records have stable local IDs and explicit `ownerId`, `propertyId`, and
+`listingId` relationships. A property can have multiple listings, and a
+listing can have multiple room offers. Service operations verify that the
+selected property belongs to the current demo provider. These checks are
+client-side demo scoping only; they are not authentication or authorization.
+
+Listing status is `draft`, `published`, or `archived`. Draft and archived
+records are excluded from student discovery. Publishing and unpublishing only
+change local browser visibility; there is no public marketplace server,
+moderation, or verified status. Publishing requires at least one valid room
+offer. Each offer has its own room type, occupancy, quantity, GHS price,
+rental period, optional deposit, availability, and features. The local form
+supports `monthly`, `semester`, `academic_year`, and `other` periods and uses
+`unknown` when availability has not been confirmed.
+
+Students can submit an enquiry against a published listing. An enquiry
+retains the related listing, property, and provider IDs, plus the submitted
+name, email, phone, message, optional viewing date, status, and timestamps.
+Provider inbox reads and status updates are scoped to that demo provider.
+Statuses are stored as `new`, `in_progress`, or `closed`; the interface labels
+`in_progress` as “Contacted”. A short repeat-submission window prevents an
+accidental duplicate. This is not real-time communication or a secure
+messaging channel.
+
+The local record repositories use versioned `localStorage` keys, while
+property image blobs use IndexedDB. Browser storage can be read or changed by
+the person using that browser and may be cleared or unavailable. Enquiry
+contact information is therefore demonstration data only and must not be used
+for real personal or sensitive information. The local layer is not a backend,
+account-level persistence, or a production privacy boundary.
+
+The staged Supabase schema is not connected and does not yet include all
+fields used by the local workflow. In particular, its rental-period enum does
+not match the local `monthly`/`other` values, and the migration does not define
+the enquiry records used here. Before a future database integration, reconcile
+these fields and lifecycle rules in a reviewed migration; do not treat local
+records as SQL-backed or migrate them implicitly.

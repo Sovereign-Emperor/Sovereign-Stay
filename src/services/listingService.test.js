@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   demoListings,
   demoUsers,
@@ -7,9 +7,12 @@ import {
   userRoles,
 } from "../data/properties";
 import { demoProperties } from "../data/demoProperties";
-import { getListingById, searchListings } from "./listingService";
+import { getListingById, getListingFilterOptions, searchListings } from "./listingService";
+import { saveProviderListing, updateProviderListingStatus } from "./providerListingService";
 
 describe("listing service", () => {
+  afterEach(() => localStorage.clear());
+
   it("adapts related demo records to the current discovery view model", async () => {
     const listing = await getListingById("greenview-residences");
 
@@ -44,6 +47,46 @@ describe("listing service", () => {
 
     expect(result.total).toBe(1);
     expect(result.items.map(({ id }) => id)).toEqual(["greenview-residences"]);
+  });
+
+  it("omits missing values from filter options and sorts unknown distances last", async () => {
+    const localListing = saveProviderListing("demo-provider-a", null, {
+      name: "Local filter option listing",
+      propertyId: "property-greenview",
+      description: "Local demo listing for filter option validation.",
+      propertyType: "Hostel",
+      locationSummary: "Adweso, Koforidua",
+      institution: "Koforidua Technical University",
+      availabilityStatus: "unknown",
+      facilityNames: [],
+    }, [{
+      roomType: "Single room",
+      occupancy: "1",
+      quantity: "1",
+      price: "900",
+      period: "semester",
+      deposit: "",
+      availabilityStatus: "unknown",
+    }]);
+    updateProviderListingStatus("demo-provider-a", localListing.id, "published");
+
+    const options = await getListingFilterOptions();
+    const nearest = await searchListings({ sortBy: "nearest", pageSize: 50 });
+    const optionLists = [
+      options.schools,
+      options.areas,
+      options.roomTypes,
+      options.propertyTypes,
+      options.availabilityStatuses,
+      options.facilities,
+    ];
+
+    expect(optionLists.every((list) =>
+      list.every((value) => typeof value === "string" && value.trim()) &&
+      new Set(list).size === list.length,
+    )).toBe(true);
+    expect(options.areas).toContain("Adweso, Koforidua");
+    expect(nearest.items.at(-1).id).toBe(localListing.id);
   });
 
   it("paginates without repeating records and keeps the total matching count", async () => {
@@ -84,7 +127,7 @@ describe("listing service", () => {
         return property && providerIds.has(property.ownerId);
       }),
     ).toBe(true);
-    expect(demoListings.every((listing) => listing.status === "draft" && listing.isDemo)).toBe(true);
+    expect(demoListings.every((listing) => listing.status === "published" && listing.isDemo)).toBe(true);
     expect(demoListings.every((listing) => listing.media.length >= 2)).toBe(true);
     expect(
       demoListings.some((listing) => listing.media.some(({ kind }) => kind === "video")),

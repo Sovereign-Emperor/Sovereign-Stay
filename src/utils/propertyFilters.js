@@ -36,9 +36,9 @@ export function validatePriceRange({ minPrice = "", maxPrice = "" }) {
  * Invalid price ranges intentionally return no matches; the page should show
  * the validation message instead of presenting that result as a genuine zero.
  *
- * @template {{ name: string, location: string, school: string, area: string, roomType: string, price: number, facilities: string[] }} T
+ * @template {{ name: string, location: string, school: string, area: string, roomType: string, type?: string, availabilityStatus?: string, price: number, facilities: string[] }} T
  * @param {T[]} listings
- * @param {{ query?: string, school?: string, area?: string, roomType?: string, minPrice?: string | number, maxPrice?: string | number, facility?: string }} filters
+ * @param {{ query?: string, school?: string, area?: string, roomType?: string, propertyType?: string, availabilityStatus?: string, minPrice?: string | number, maxPrice?: string | number, facility?: string }} filters
  * @returns {T[]}
  */
 export function filterProperties(listings, filters) {
@@ -51,17 +51,22 @@ export function filterProperties(listings, filters) {
     filters.minPrice == null || filters.minPrice === "" ? null : Number(filters.minPrice);
   const maximum =
     filters.maxPrice == null || filters.maxPrice === "" ? null : Number(filters.maxPrice);
+  const hasPriceBounds = minimum !== null || maximum !== null;
 
   return listings.filter((property) => {
     const searchableText = `${property.name} ${property.location}`.toLowerCase();
+    const hasPrice = property.price != null && Number.isFinite(Number(property.price));
 
     return (
       (!query || searchableText.includes(query)) &&
       (!filters.school || property.school === filters.school) &&
       (!filters.area || property.area === filters.area) &&
       (!filters.roomType || property.roomType === filters.roomType) &&
-      (minimum === null || property.price >= minimum) &&
-      (maximum === null || property.price <= maximum) &&
+      (!filters.propertyType || property.type === filters.propertyType) &&
+      (!filters.availabilityStatus || property.availabilityStatus === filters.availabilityStatus) &&
+      (!hasPriceBounds || (hasPrice &&
+        (minimum === null || Number(property.price) >= minimum) &&
+        (maximum === null || Number(property.price) <= maximum))) &&
       (!filters.facility || property.facilities.includes(filters.facility))
     );
   });

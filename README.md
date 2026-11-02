@@ -77,16 +77,11 @@ supabase/
   seed.sql            Safe lookup catalogue values only
 ```
 
-Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx` files.
-The provider workspace is available at `/provider`. It uses a separate demo
-provider repository and service, shows only that example provider's listings,
-and includes working navigation to property, enquiry, and add-property
-destinations. Property creation and enquiry management are explicit
-placeholders; no provider changes are saved, and there is no authentication,
-backend connection, or real provider data.
+Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx`
+files. They cover discovery, provider property and listing workflows, room
+offer validation, local enquiry submission, ownership checks, and regressions.
 Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
-listing lifecycle, trust fields, media storage, pagination, and the proposed
-provider/admin architecture.
+listing lifecycle, local demo storage, and the planned backend architecture.
 Read [docs/supabase-setup.md](./docs/supabase-setup.md) for the local database
 foundation, required tools, migration commands, and security warnings.
 
@@ -96,46 +91,41 @@ foundation, required tools, migration commands, and security warnings.
 - Filter by campus, neighbourhood, room arrangement, minimum and maximum semester price, and facilities; filters can be combined.
 - Sort by recommendation, price, or distance to campus.
 - Open individual property pages with photo galleries, amenities, availability, location, and house notes.
-- Start an enquiry or viewing request in WhatsApp with a pre-filled property-specific message.
+- Submit an enquiry from a published listing and, separately, open a demo-aware WhatsApp contact link.
 - Browse the About page and responsive mobile navigation.
+- At `/provider`, create and edit physical properties and linked listings, add room offers, save drafts, preview and publish listings in the local demo, and manage enquiries in the provider inbox.
 
-Every property shown, including its photos, price, and example room count, is demonstration content only; listings are not real, live, or verified.
+Every property, listing, photo, price, room count, and availability value is demonstration content only. “Publishing” only changes visibility within the same browser's local demo workspace; it is not public publication, moderation, verification, or a claim of real availability.
 
 Tailwind CSS v4 is integrated through its Vite plugin in `vite.config.js`.
-Listing pages now use `src/services/listingService.js` instead of importing
-fixture arrays. The service calls the demo repository, which adapts the
-normalized provider/listing/location/room/facility records in
-`src/data/properties.js` to the current card and detail view model. This
-preserves the working UI while establishing a replacement point for a future
-API repository. The local adapter intentionally shows draft demo fixtures;
-a production API must only return listings approved for discovery.
+Student-facing listing pages use `src/services/listingService.js`, which
+adapts normalized demo fixtures and locally saved provider listings through
+the shared listing view model. Only listings with `published` status appear in
+student discovery. Providers can keep drafts private, preview them, publish
+them within their local browser workspace, unpublish to draft, or archive
+them. Each listing points to a physical property by `propertyId`; room offers
+and enquiries are stored as separate related records.
 
-The provider workspace at `/provider` uses normalized demo properties from
-`src/data/demoProperties.js`, provider-scoped lookups from
-`src/data/demoPropertyRepository.js`, and `src/services/providerDashboardService.js`.
-Listings reference physical properties by `propertyId`, allowing one property
-to have multiple advertisements without copying listing information into
-property records. The properties page supports name search and listing-status
-filters; property details show linked listings and room/price offers. The Add
-Property route validates required details in the browser, but does not save a
-property or create listings. Enquiry management remains a placeholder; the
-dashboard has no authentication, persistence, or backend permissions.
-The form's region options come from `src/data/ghanaRegions.js`; city and
-neighbourhood remain provider-entered text rather than an incomplete lookup.
-Property photos can be selected for local previews and removed or marked as
-the cover image. No image upload or permanent storage is connected.
+The provider workspace composes repositories under `src/data/` with service
+logic under `src/services/`. Property metadata, listing records, room offers,
+and enquiries use browser `localStorage`; property image blobs are stored in
+IndexedDB. Records use stable local IDs and explicit property, listing, and
+provider relationships. This persistence is limited to the current browser
+profile: it is not a user account, synchronized backup, server, or production
+authorization boundary. Clearing browser data removes locally saved records.
 
-The model gives each physical demo property an `ownerId` provider relationship
-and references it from listings by `propertyId`. It supports multiple rooms
-and ordered photo/video media records, and separates listing
-approval from provider verification, property verification, availability, and
-the last-updated timestamp. The service accepts paginated search parameters;
-the local adapter paginates its small fixtures, while a future server adapter
-must perform filtering and pagination in the database for large result sets.
-Authentication, provider property editing/creation, administration, uploads,
-moderation, and persistent provider data are not implemented yet.
+New listings require a valid property owned by the current demo provider.
+Publishing requires at least one valid room offer. Listing cards show starting
+prices based on their room offers, while detail pages show the individual
+options. Students can submit a local enquiry from published listing details;
+providers can filter the inbox and update enquiry status. The WhatsApp action
+remains a separate contact option and explicitly describes the listing as a
+demo example.
 
 The initial Supabase SQL schema and lookup seed are staged under `supabase/`.
-They are not connected to the frontend or a remote project. Local database
-validation requires the Supabase CLI and Docker; see the setup guide for
-commands and the current validation limitation.
+They are not connected to the frontend or a remote project. The current SQL
+schema has not yet been migrated to cover all local demo fields, rental-period
+values, or enquiries. Local database validation requires the Supabase CLI and
+Docker; see the setup guide for commands and the current validation limitation.
+Authentication, server-enforced ownership, public publishing, moderation,
+server persistence, and real-time communication remain future work.

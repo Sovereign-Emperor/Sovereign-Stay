@@ -6,7 +6,12 @@ import ProviderSidebar from "../../components/provider/ProviderSidebar";
 function getProviderPageTitle(pathname) {
   if (pathname === "/provider") return "Overview";
   if (pathname === "/provider/properties") return "Your properties";
+  if (pathname === "/provider/listings") return "Your listings";
+  if (pathname === "/provider/listings/new") return "Create listing";
+  if (pathname.startsWith("/provider/listings/") && pathname.endsWith("/edit")) return "Edit listing";
+  if (pathname.startsWith("/provider/listings/")) return "Listing preview";
   if (pathname.endsWith("/new")) return "Add a property";
+  if (pathname.endsWith("/edit")) return "Edit property";
   if (pathname.includes("/properties/")) return "Property overview";
   if (pathname.startsWith("/provider/enquiries")) return "Enquiries";
   return "Provider workspace";
@@ -45,7 +50,7 @@ export default function ProviderLayout() {
         </main>
         <footer className="provider-footer">
           <span>Sovereign Stay · Provider tools</span>
-          <span>DEMONSTRATION ONLY · No account or data is saved</span>
+          <span>DEMONSTRATION ONLY · Data stays in this browser</span>
         </footer>
       </div>
     </div>

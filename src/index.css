@@ -238,6 +238,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
 .availability-box small { color: #5f6b60; font-size: 8px; }
 .enquiry-button { width: 100%; min-height: 45px; margin-top: 12px; color: #163e2e; background: #d5efdc; }
 .enquiry-button:hover { background: #c5e9d0; }
+.listing-whatsapp-link { width: 100%; min-height: 43px; margin-top: 8px; }
 .enquiry-reassurance { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 12px 0 0; color: #5f6b60; font-size: 8px; }
 .enquiry-reassurance svg { color: #7e9a69; }
 .listing-updated { display: flex; align-items: center; gap: 6px; margin-top: 18px; padding-top: 13px; border-top: 1px solid #edf0e9; color: #5f6b60; font-size: 8px; }
@@ -741,4 +742,154 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
   .provider-photo-card-footer { align-items: start; }
   .provider-photo-action { width: 28px; overflow: hidden; padding: 0; font-size: 0; }
   .provider-photo-action svg { flex-shrink: 0; }
+}
+.provider-primary-button:disabled, .provider-danger-button:disabled { opacity: .6; cursor: not-allowed; }
+.provider-form-error-banner { padding: 12px 14px; border: 1px solid #ead3cf; color: #98483f; background: #fbf3f1; font-size: 9px; line-height: 1.6; }
+.provider-form-error-banner p { margin: 0; }
+.provider-property-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.provider-property-detail-actions .provider-outline-button, .provider-danger-button { min-height: 40px; padding: 0 12px; font: inherit; font-size: 9px; cursor: pointer; }
+.provider-danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #a34f45; color: #91483f; background: #fff; }
+.provider-danger-button:hover:not(:disabled) { color: #fff; background: #934a42; }
+.provider-property-information { padding: 20px; border: 1px solid #e3e7df; background: #fff; }
+.provider-property-information dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 14px 0 0; }
+.provider-property-information dl > div { min-width: 0; padding: 11px 0; border-top: 1px solid #edf0e9; }
+.provider-property-information dt { margin-bottom: 5px; color: #798478; font-size: 8px; }
+.provider-property-information dd { margin: 0; color: #364638; font-size: 10px; line-height: 1.55; overflow-wrap: anywhere; }
+.provider-dialog-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(18, 30, 21, .5); }
+.provider-confirmation-dialog { width: min(100%, 440px); padding: 23px; border: 1px solid #dfe5da; background: #fff; box-shadow: 0 18px 60px rgba(13, 30, 18, .2); }
+.provider-confirmation-dialog h2 { margin: 7px 0 9px; color: #263b2b; font-family: "Manrope", sans-serif; font-size: 20px; letter-spacing: -.04em; }
+.provider-confirmation-dialog > p:not(.provider-eyebrow) { color: #687568; font-size: 10px; line-height: 1.7; }
+.provider-delete-dependency { padding: 10px; border: 1px solid #ead9b9; color: #735528 !important; background: #fcf8ef; }
+.provider-dialog-actions { display: flex; justify-content: end; gap: 8px; margin-top: 18px; }
+.provider-dialog-actions .provider-outline-button { min-height: 40px; padding: 0 14px; font: inherit; font-size: 9px; cursor: pointer; }
+.provider-dialog-actions .provider-danger-button { padding-inline: 14px; }
+.provider-confirmation-dialog:focus { outline: 2px solid #849b68; outline-offset: 3px; }
+@media (max-width: 520px) {
+  .provider-property-detail-actions { width: 100%; }
+  .provider-property-detail-actions > * { flex: 1; }
+  .provider-property-information { padding: 14px; }
+  .provider-property-information dl { grid-template-columns: 1fr; }
+  .provider-confirmation-dialog { padding: 18px; }
+}
+
+.provider-listing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.provider-listing-card { min-width: 0; padding: 16px; border: 1px solid #e3e7df; background: #fff; }
+.provider-listing-card > header, .provider-listing-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.provider-listing-card h3 { margin: 6px 0 0; overflow-wrap: anywhere; color: #2f4032; font-family: "Manrope", sans-serif; font-size: 15px; letter-spacing: -.03em; }
+.provider-listing-card-location { display: flex; align-items: center; gap: 6px; margin: 12px 0 8px; color: #657166; font-size: 9px; }
+.provider-listing-card-description { display: -webkit-box; min-height: 34px; overflow: hidden; color: #647064; font-size: 9px; line-height: 1.65; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.provider-listing-card-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-block: 10px; border-top: 1px solid #edf0e9; border-bottom: 1px solid #edf0e9; color: #536453; font-size: 9px; }
+.provider-listing-card footer { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 10px; color: #778277; font-size: 8px; }
+.provider-listing-card footer span { flex: 1; }
+.provider-listing-card footer a { display: inline-flex; align-items: center; gap: 4px; color: #496644; font-size: 9px; font-weight: 650; }
+.provider-listing-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 13px; border: 1px solid #e3e7df; background: #fff; }
+.provider-listing-filters label, .provider-enquiry-status-filter { display: grid; min-width: min(100%, 240px); gap: 6px; color: #566456; font-size: 9px; font-weight: 650; }
+.provider-listing-filters label > span { display: flex; min-height: 40px; align-items: center; gap: 8px; padding-inline: 10px; border: 1px solid #dfe5da; color: #7a8975; }
+.provider-listing-filters input, .provider-listing-filters select, .provider-enquiry-status-filter select { min-height: 40px; padding-inline: 10px; border: 1px solid #dfe5da; color: #354638; background: white; font: inherit; font-size: 10px; }
+.provider-listing-filters label > span input { width: 100%; min-width: 0; min-height: 36px; border: 0; outline: 0; }
+.provider-listing-result-count { margin: -10px 0 0; color: #637164; font-size: 9px; }
+.provider-listing-form { display: grid; gap: 17px; }
+.provider-listing-form .provider-form-section-heading { align-items: start; }
+.provider-listing-facilities { margin: 0; padding: 12px; border: 1px solid #e3e7df; }
+.provider-listing-facilities legend, .provider-room-offer-editor legend { padding-inline: 5px; color: #4a5b4a; font-size: 9px; font-weight: 700; }
+.provider-listing-facilities > div { display: flex; flex-wrap: wrap; gap: 9px 14px; }
+.provider-listing-facilities label { display: inline-flex; align-items: center; gap: 6px; color: #536253; font-size: 9px; }
+.provider-listing-facilities input { accent-color: #496644; }
+.provider-room-offer-editor { position: relative; margin: 12px 0 0; padding: 14px; border: 1px solid #e3e7df; }
+.provider-room-offer-editor .provider-form-grid { margin-top: 5px; }
+.provider-remove-room-offer { position: absolute; top: 4px; right: 7px; display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid #eadbd8; color: #91483f; background: white; cursor: pointer; }
+.provider-listing-no-offers { margin: 0; padding: 13px; color: #687568; background: #f7f8f4; font-size: 10px; }
+.provider-listing-form-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 9px; padding-top: 5px; }
+.provider-listing-form-actions > * { min-height: 42px; }
+.provider-listing-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.provider-listing-preview-header h2 { margin: 7px 0; color: #2e4032; font-family: "Manrope", sans-serif; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.05em; }
+.provider-listing-preview-header p:last-child { margin: 0; color: #687568; font-size: 10px; }
+.provider-listing-preview-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; align-items: start; gap: 18px; }
+.provider-listing-preview-layout > main { display: grid; gap: 13px; }
+.provider-listing-preview-section, .provider-listing-preview-actions, .provider-enquiry-detail-card { min-width: 0; padding: 17px; border: 1px solid #e3e7df; background: white; }
+.provider-listing-preview-section h3, .provider-listing-preview-actions h3 { margin: 4px 0 9px; color: #344638; font-family: "Manrope", sans-serif; font-size: 15px; }
+.provider-listing-preview-section > p { color: #647064; font-size: 10px; line-height: 1.7; white-space: pre-line; }
+.provider-preview-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.provider-preview-photo { position: relative; min-width: 0; }
+.provider-preview-photo-image { height: 132px; }
+.provider-preview-photo > span { position: absolute; right: 6px; bottom: 6px; padding: 4px 6px; color: white; background: rgba(36,67,51,.88); font-size: 8px; }
+.provider-listing-preview-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 15px 0 0; }
+.provider-listing-preview-facts dt { color: #758174; font-size: 8px; }
+.provider-listing-preview-facts dd { margin: 5px 0 0; color: #354638; font-size: 10px; overflow-wrap: anywhere; }
+.provider-preview-room { display: grid; gap: 7px; margin-top: 10px; padding: 12px; border: 1px solid #edf0e9; background: #fbfcf9; }
+.provider-preview-room header { display: flex; justify-content: space-between; gap: 10px; color: #384b3a; font-size: 10px; }
+.provider-preview-room p, .provider-preview-room small { margin: 0; color: #697668; font-size: 9px; line-height: 1.55; }
+.provider-preview-room > strong { color: #2f4931; font-size: 12px; }
+.provider-listing-preview-actions { position: sticky; top: 85px; display: grid; gap: 9px; }
+.provider-listing-preview-actions h3 { margin: 0 0 3px; }
+.provider-listing-preview-actions > * { width: 100%; }
+.provider-listing-preview-actions p { margin: 2px 0 0; color: #738071; font-size: 8px; line-height: 1.5; }
+.provider-enquiry-list { display: grid; gap: 10px; }
+.provider-enquiry-card { display: grid; grid-template-columns: 38px minmax(0, 1fr) 32px; align-items: start; gap: 12px; padding: 15px; border: 1px solid #e3e7df; background: white; }
+.provider-enquiry-card-icon { display: grid; width: 36px; height: 36px; place-items: center; color: #557047; background: #eff3e9; }
+.provider-enquiry-card-content { min-width: 0; }
+.provider-enquiry-card-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.provider-enquiry-card h3 { margin: 0; color: #354638; font-family: "Manrope", sans-serif; font-size: 13px; }
+.provider-enquiry-card-content p { margin: 6px 0 0; color: #657166; font-size: 9px; line-height: 1.55; overflow-wrap: anywhere; }
+.provider-enquiry-card-content small { display: block; margin-top: 7px; color: #7a8578; font-size: 8px; }
+.provider-enquiry-card > a { display: grid; width: 32px; height: 32px; place-items: center; color: #496644; }
+.provider-enquiry-status { display: inline-flex; padding: 4px 7px; border: 1px solid #e4e8df; color: #657166; background: #f5f6f2; font-size: 8px; text-transform: capitalize; }
+.provider-enquiry-status-new { border-color: #dce8d1; color: #42633e; background: #f0f5e9; }
+.provider-enquiry-status-in_progress { border-color: #eee3c5; color: #74633c; background: #faf6e9; }
+.provider-enquiry-status-closed { border-color: #e4e8df; color: #697568; background: #f4f5f2; }
+.provider-enquiry-detail-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 0; }
+.provider-enquiry-detail-card dl > div { min-width: 0; padding: 12px 0; border-bottom: 1px solid #edf0e9; }
+.provider-enquiry-detail-card dt { margin-bottom: 5px; color: #7a8578; font-size: 8px; }
+.provider-enquiry-detail-card dd { display: flex; align-items: center; gap: 5px; margin: 0; color: #354638; font-size: 10px; overflow-wrap: anywhere; }
+.provider-enquiry-detail-card dd a { display: inline-flex; align-items: center; gap: 4px; color: #496644; }
+.provider-enquiry-detail-card .provider-enquiry-message { white-space: pre-wrap; line-height: 1.65; }
+.provider-enquiry-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 9px; margin-top: 16px; }
+.provider-enquiry-actions label { display: grid; gap: 5px; color: #566456; font-size: 9px; }
+.provider-enquiry-actions select { min-height: 40px; padding-inline: 10px; border: 1px solid #dfe5da; background: white; }
+.provider-activity-list { display: grid; gap: 0; margin: 0; padding: 0; border: 1px solid #e3e7df; background: white; list-style: none; }
+.provider-activity-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 13px; border-bottom: 1px solid #edf0e9; color: #59685a; font-size: 9px; }
+.provider-activity-list li:last-child { border-bottom: 0; }
+.provider-activity-list time { flex-shrink: 0; color: #7a8578; font-size: 8px; }
+.student-enquiry-form { display: grid; gap: 10px; margin-top: 18px; padding: 16px; border: 1px solid #e3e8de; background: #fbfcf9; }
+.student-enquiry-form h3 { margin: 0; color: #314433; font-family: "Manrope", sans-serif; font-size: 16px; }
+.student-enquiry-form > p { margin: 0; color: #697568; font-size: 9px; line-height: 1.55; }
+.student-enquiry-field { display: grid; gap: 5px; color: #4e5e4d; font-size: 9px; font-weight: 650; }
+.student-enquiry-field input, .student-enquiry-field textarea { width: 100%; min-width: 0; min-height: 39px; padding: 9px; border: 1px solid #dfe5da; border-radius: 2px; color: #354638; background: white; font: inherit; font-size: 10px; }
+.student-enquiry-field textarea { resize: vertical; }
+.student-enquiry-field input:focus-visible, .student-enquiry-field textarea:focus-visible, .provider-listing-form :focus-visible, .provider-listing-filters :focus-visible { outline: 2px solid #849b68; outline-offset: 2px; }
+.student-enquiry-field [aria-invalid="true"] { border-color: #a64e43; }
+.student-enquiry-error { color: #98483f; font-size: 8px; font-weight: 500; }
+.student-enquiry-error-banner, .student-enquiry-success { padding: 9px; border: 1px solid #ead3cf; color: #98483f !important; background: #fbf3f1; }
+.student-enquiry-success { border-color: #dce8d1; color: #42633e !important; background: #f0f5e9; }
+.student-enquiry-form .enquiry-button { display: flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; padding: 9px; border: 0; color: white; background: var(--forest); font: inherit; font-size: 9px; font-weight: 700; text-align: center; cursor: pointer; }
+.student-enquiry-form .enquiry-button:disabled { opacity: .65; cursor: wait; }
+.student-room-offers { display: grid; gap: 10px; }
+.student-room-offers article { display: grid; gap: 7px; padding: 13px; border: 1px solid #e6e9e2; background: white; }
+.student-room-offers article > div { display: flex; justify-content: space-between; gap: 8px; }
+.student-room-offers h4 { margin: 0; color: #354638; font-size: 11px; }
+.student-room-offers p, .student-room-offers small { margin: 0; color: #687568; font-size: 9px; line-height: 1.55; }
+.student-room-offers strong { color: #2e4931; font-size: 12px; }
+.student-room-offers strong span { color: #657166; font-size: 9px; font-weight: 500; }
+.gallery-main:disabled { cursor: default; }
+.provider-primary-button:focus-visible, .provider-outline-button:focus-visible, .provider-danger-button:focus-visible, .provider-remove-room-offer:focus-visible, .provider-listing-card a:focus-visible, .provider-enquiry-card a:focus-visible { outline: 2px solid #849b68; outline-offset: 2px; }
+.provider-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (min-width: 1100px) {
+  .provider-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .provider-listing-preview-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+}
+@media (max-width: 700px) {
+  .provider-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .provider-listing-grid { grid-template-columns: 1fr; }
+  .provider-listing-preview-layout { grid-template-columns: 1fr; }
+  .provider-preview-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .provider-listing-preview-actions { position: static; grid-row: 1; }
+  .provider-listing-preview-facts { grid-template-columns: 1fr; }
+  .provider-listing-form-actions { display: grid; grid-template-columns: 1fr; }
+  .provider-listing-form-actions > * { width: 100%; }
+  .provider-listing-filters { display: grid; grid-template-columns: 1fr; }
+  .provider-listing-filters label, .provider-enquiry-status-filter { min-width: 0; }
+  .provider-enquiry-detail-card dl { grid-template-columns: 1fr; }
 }

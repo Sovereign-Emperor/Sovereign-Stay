@@ -32,7 +32,7 @@ const roomTypesById = new Map(roomTypes.map((roomType) => [roomType.id, roomType
  * @property {string} location
  * @property {string} area
  * @property {string} school
- * @property {number} distanceKm
+ * @property {number | null} distanceKm
  * @property {number} price
  * @property {string} pricePeriod
  * @property {string} roomType
@@ -104,6 +104,8 @@ export function toListingViewModel(listing) {
     type: listing.propertyType,
     location: location.label,
     area: location.area,
+    city: location.city,
+    region: location.region.replace(/\s+Region$/i, ""),
     school: institution.name,
     distanceKm: location.distanceKmByInstitution[institution.id],
     price: primaryRoom.price.amount,

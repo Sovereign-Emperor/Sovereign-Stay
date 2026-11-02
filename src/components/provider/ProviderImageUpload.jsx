@@ -1,38 +1,52 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Image as ImageIcon, Star, Trash2 } from "lucide-react";
+import { getPropertyImageError } from "../../utils/propertyImageValidation";
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const ACCEPTED_EXTENSIONS = /\.(jpe?g|png|webp)$/i;
 const ACCEPTED_FORMATS_LABEL = "JPG, JPEG, PNG, or WebP";
-
-function getImageFileError(file) {
-  const hasAcceptedExtension = ACCEPTED_EXTENSIONS.test(file.name);
-  const hasAcceptedType = ACCEPTED_IMAGE_TYPES.has(file.type);
-  const hasMissingTypeWithSupportedExtension = !file.type && hasAcceptedExtension;
-
-  if (!hasAcceptedExtension || (!hasAcceptedType && !hasMissingTypeWithSupportedExtension)) {
-    return `${file.name}: choose a JPG, JPEG, PNG, or WebP image.`;
-  }
-
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return `${file.name}: image must be 5 MB or smaller.`;
-  }
-
-  return "";
-}
+const ignoreImageChange = () => {};
 
 /**
- * Select and locally preview property photos. This component does not upload
- * files or persist them outside the current browser session.
+ * Select, preview, and manage photos for a property form. Files are provided
+ * to the parent for local browser persistence; this component never uploads.
  */
-export default function ProviderImageUpload() {
+export default function ProviderImageUpload({
+  initialImages = [],
+  onImagesChange = ignoreImageChange,
+}) {
   const [images, setImages] = useState([]);
   const [coverImageId, setCoverImageId] = useState(null);
   const [errors, setErrors] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const objectUrls = useRef(new Set());
   const nextImageId = useRef(0);
+
+  useEffect(() => {
+    if (initialImages.length === 0) return;
+
+    const restoredImages = [];
+    const initializationErrors = [];
+    initialImages.forEach((image) => {
+      let previewUrl = null;
+      try {
+        previewUrl = URL.createObjectURL(image.file);
+        objectUrls.current.add(previewUrl);
+      } catch {
+        initializationErrors.push(`${image.file.name}: preview could not be created, but the file is selected.`);
+      }
+
+      restoredImages.push({
+        ...image,
+        id: image.id ?? `property-image-${++nextImageId.current}`,
+        previewUrl,
+      });
+    });
+
+    setImages(restoredImages);
+    setCoverImageId(
+      restoredImages.find(({ isCover }) => isCover)?.id ?? restoredImages[0]?.id ?? null,
+    );
+    setErrors(initializationErrors);
+  }, []);
 
   useEffect(
     () => () => {
@@ -48,7 +62,7 @@ export default function ProviderImageUpload() {
     const nextErrors = [];
 
     incomingFiles.forEach((file) => {
-      const fileError = getImageFileError(file);
+      const fileError = getPropertyImageError(file);
 
       if (fileError) {
         nextErrors.push(fileError);
@@ -67,13 +81,21 @@ export default function ProviderImageUpload() {
       acceptedImages.push({
         id: `property-image-${nextImageId.current}`,
         file,
+        name: file.name,
         previewUrl,
       });
     });
 
-    setImages((currentImages) => [...currentImages, ...acceptedImages]);
     if (acceptedImages.length > 0) {
-      setCoverImageId((currentCoverId) => currentCoverId ?? acceptedImages[0].id);
+      const nextImages = [...images, ...acceptedImages];
+      const nextCoverImageId = coverImageId ?? acceptedImages[0].id;
+      setImages(nextImages);
+      setCoverImageId(nextCoverImageId);
+      onImagesChange(nextImages.map((image) => ({
+        ...image,
+        name: image.name ?? image.file.name,
+        isCover: image.id === nextCoverImageId,
+      })));
     }
     setErrors(nextErrors);
   }
@@ -98,10 +120,15 @@ export default function ProviderImageUpload() {
     }
 
     const updatedImages = images.filter((image) => image.id !== imageId);
+    const nextCoverImageId =
+      coverImageId === imageId ? updatedImages[0]?.id ?? null : coverImageId;
     setImages(updatedImages);
-    setCoverImageId((currentCoverId) =>
-      currentCoverId === imageId ? updatedImages[0]?.id ?? null : currentCoverId,
-    );
+    setCoverImageId(nextCoverImageId);
+    onImagesChange(updatedImages.map((image) => ({
+      ...image,
+      name: image.name ?? image.file.name,
+      isCover: image.id === nextCoverImageId,
+    })));
   }
 
   function handlePreviewError(image) {
@@ -132,7 +159,7 @@ export default function ProviderImageUpload() {
 
       <p className="provider-photo-recommendation">
         Helpful photos include the exterior, a bedroom, bathroom, and shared spaces. Photos are
-        optional and stay in this browser preview only.
+        optional and saved only in this browser&apos;s demo workspace.
       </p>
 
       <label
@@ -203,7 +230,14 @@ export default function ProviderImageUpload() {
                       <button
                         className="provider-photo-action"
                         type="button"
-                        onClick={() => setCoverImageId(image.id)}
+                        onClick={() => {
+                          setCoverImageId(image.id);
+                          onImagesChange(images.map((currentImage) => ({
+                            ...currentImage,
+                            name: currentImage.name ?? currentImage.file.name,
+                            isCover: currentImage.id === image.id,
+                          })));
+                        }}
                         aria-label={`Set ${image.file.name} as cover photo`}
                       >
                         <Star size={14} aria-hidden="true" /> Cover

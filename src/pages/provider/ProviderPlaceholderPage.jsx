@@ -1,15 +1,7 @@
-import { ArrowLeft, ArrowRight, Building2, MessageSquareText } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const pageContent = {
-  enquiries: {
-    eyebrow: "PROVIDER INBOX",
-    title: "Enquiry management is not connected yet.",
-    description: "The dashboard includes illustrative enquiry totals only. There are no real student messages or viewing requests in this demo.",
-    icon: MessageSquareText,
-    actionLabel: "Back to overview",
-    actionTo: "/provider",
-  },
   "not-found": {
     eyebrow: "PROVIDER WORKSPACE",
     title: "That dashboard page is not available.",

@@ -12,6 +12,11 @@ import ProviderManagePropertyPage from "./pages/provider/ProviderManagePropertyP
 import ProviderPropertyFormPage from "./pages/provider/ProviderPropertyFormPage";
 import ProviderPlaceholderPage from "./pages/provider/ProviderPlaceholderPage";
 import ProviderPropertiesPage from "./pages/provider/ProviderPropertiesPage";
+import ProviderListingsPage from "./pages/provider/ProviderListingsPage";
+import ProviderListingFormPage from "./pages/provider/ProviderListingFormPage";
+import ProviderListingPreviewPage from "./pages/provider/ProviderListingPreviewPage";
+import ProviderEnquiriesPage from "./pages/provider/ProviderEnquiriesPage";
+import ProviderEnquiryDetailPage from "./pages/provider/ProviderEnquiryDetailPage";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -47,13 +52,19 @@ export default function App() {
             element={<ProviderPropertyFormPage />}
           />
           <Route
+            path="properties/:propertyId/edit"
+            element={<ProviderPropertyFormPage />}
+          />
+          <Route
             path="properties/:propertyId"
             element={<ProviderManagePropertyPage />}
           />
-          <Route
-            path="enquiries"
-            element={<ProviderPlaceholderPage page="enquiries" />}
-          />
+          <Route path="listings" element={<ProviderListingsPage />} />
+          <Route path="listings/new" element={<ProviderListingFormPage />} />
+          <Route path="listings/:listingId/edit" element={<ProviderListingFormPage />} />
+          <Route path="listings/:listingId" element={<ProviderListingPreviewPage />} />
+          <Route path="enquiries" element={<ProviderEnquiriesPage />} />
+          <Route path="enquiries/:enquiryId" element={<ProviderEnquiryDetailPage />} />
           <Route
             path="*"
             element={<ProviderPlaceholderPage page="not-found" />}

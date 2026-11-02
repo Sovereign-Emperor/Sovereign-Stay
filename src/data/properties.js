@@ -2,8 +2,8 @@
  * Domain-shaped demonstration data for the future marketplace.
  *
  * These records are fixtures, not real provider accounts or accommodation.
- * The demo repository deliberately makes draft fixtures visible in the MVP;
- * a production repository must return only listings approved for discovery.
+ * Their published state applies only inside this local demonstration; a
+ * production repository must return only listings eligible for discovery.
  */
 
 export const listingStatuses = [
@@ -179,7 +179,7 @@ export const demoListings = [
   {
     id: "greenview-residences",
     propertyId: "property-greenview",
-    status: "draft",
+    status: "published",
     isDemo: true,
     name: "Greenview Student Residences",
     propertyType: "Student hostel",
@@ -211,7 +211,7 @@ export const demoListings = [
   {
     id: "hilltop-court",
     propertyId: "property-hilltop",
-    status: "draft",
+    status: "published",
     isDemo: true,
     name: "Hilltop Court Hostel",
     propertyType: "Student hostel",
@@ -243,7 +243,7 @@ export const demoListings = [
   {
     id: "the-palm-house",
     propertyId: "property-palm-house",
-    status: "draft",
+    status: "published",
     isDemo: true,
     name: "The Palm House",
     propertyType: "Shared apartment",
@@ -275,7 +275,7 @@ export const demoListings = [
   {
     id: "campus-edge-lodge",
     propertyId: "property-campus-edge",
-    status: "draft",
+    status: "published",
     isDemo: true,
     name: "Campus Edge Lodge",
     propertyType: "Student hostel",
@@ -307,7 +307,7 @@ export const demoListings = [
   {
     id: "sunrise-hostel",
     propertyId: "property-sunrise",
-    status: "draft",
+    status: "published",
     isDemo: true,
     name: "Sunrise Hostel",
     propertyType: "Student hostel",
@@ -339,7 +339,7 @@ export const demoListings = [
   {
     id: "cedar-student-homes",
     propertyId: "property-cedar",
-    status: "draft",
+    status: "published",
     isDemo: true,
     name: "Cedar Student Homes",
     propertyType: "Shared apartment",

@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, LayoutDashboard, MessageSquareText, Plus, Store } from "lucide-react";
+import { Building2, ClipboardList, FileText, LayoutDashboard, MessageSquareText, Plus, Store } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 /**
@@ -28,6 +28,9 @@ export default function ProviderSidebar({ isOpen, onNavigate }) {
         <NavLink to="/provider/properties" onClick={onNavigate}>
           <Building2 size={17} /> Properties
         </NavLink>
+        <NavLink to="/provider/listings" onClick={onNavigate}>
+          <FileText size={17} /> Listings
+        </NavLink>
         <NavLink to="/provider/enquiries" onClick={onNavigate}>
           <MessageSquareText size={17} /> Enquiries
         </NavLink>
@@ -42,7 +45,7 @@ export default function ProviderSidebar({ isOpen, onNavigate }) {
       <div className="provider-sidebar-note">
         <span className="provider-demo-dot" />
         Demo mode
-        <p>Changes are not saved to an account or database.</p>
+        <p>Changes stay in this browser; no account or backend is connected.</p>
       </div>
     </aside>
   );

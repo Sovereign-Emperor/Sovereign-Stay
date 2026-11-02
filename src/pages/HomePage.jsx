@@ -11,6 +11,8 @@ const initialFilters = {
   school: "",
   area: "",
   roomType: "",
+  propertyType: "",
+  availabilityStatus: "",
   minPrice: "",
   maxPrice: "",
   facility: "",
@@ -89,6 +91,8 @@ export default function HomePage() {
               <label className="select-wrap"><span className="sr-only">Filter by school</span><select value={filters.school} onChange={(event) => setFilter("school", event.target.value)}><option value="">All schools</option>{options.schools.map((school) => <option key={school}>{school}</option>)}</select><ChevronDown size={14} /></label>
               <label className="select-wrap"><span className="sr-only">Filter by neighbourhood</span><select value={filters.area} onChange={(event) => setFilter("area", event.target.value)}><option value="">All neighbourhoods</option>{options.areas.map((area) => <option key={area}>{area}</option>)}</select><ChevronDown size={14} /></label>
               <label className="select-wrap"><span className="sr-only">Filter by room type</span><select value={filters.roomType} onChange={(event) => setFilter("roomType", event.target.value)}><option value="">Any room type</option>{options.roomTypes.map((room) => <option key={room}>{room}</option>)}</select><ChevronDown size={14} /></label>
+              <label className="select-wrap"><span className="sr-only">Filter by accommodation type</span><select value={filters.propertyType} onChange={(event) => setFilter("propertyType", event.target.value)}><option value="">Any accommodation type</option>{options.propertyTypes.map((type) => <option key={type}>{type}</option>)}</select><ChevronDown size={14} /></label>
+              <label className="select-wrap"><span className="sr-only">Filter by room availability</span><select value={filters.availabilityStatus} onChange={(event) => setFilter("availabilityStatus", event.target.value)}><option value="">Any availability status</option>{options.availabilityStatuses.map((status) => <option key={status} value={status}>{status === "unknown" ? "Not confirmed" : status[0].toUpperCase() + status.slice(1)}</option>)}</select><ChevronDown size={14} /></label>
               <div className="price-filter" role="group" aria-label="Filter by semester price in Ghana cedis">
                 <span className="price-filter-currency">GHS</span>
                 <label className="sr-only" htmlFor="minimum-price">Minimum semester price in GHS</label>

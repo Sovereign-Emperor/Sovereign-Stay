@@ -2,6 +2,7 @@ import { ArrowUpRight, BedDouble, MapPin, Megaphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatPrice } from "../../utils/format";
 import PropertyImage from "../PropertyImage";
+import ProviderStoredImage from "./ProviderStoredImage";
 import ProviderStatusBadge from "./ProviderStatusBadge";
 
 /**
@@ -18,16 +19,23 @@ export default function ProviderPropertyCard({ property }) {
         aria-label={`View details for ${property.name}`}
       >
         {property.photos[0] ? (
-          <PropertyImage
-            photoId={property.photos[0]}
-            alt={`Illustrative accommodation photo for ${property.name}`}
-            width={520}
-            loading="lazy"
-          />
+          property.photos[0].isLocal ? (
+            <ProviderStoredImage
+              photo={property.photos[0]}
+              alt={`Property photo for ${property.name}`}
+            />
+          ) : (
+            <PropertyImage
+              photoId={property.photos[0]}
+              alt={`Illustrative accommodation photo for ${property.name}`}
+              width={520}
+              loading="lazy"
+            />
+          )
         ) : (
-          <span className="provider-property-no-image">No demo photo</span>
+          <span className="provider-property-no-image">No property photo</span>
         )}
-        <span className="provider-image-demo-label">DEMO PROPERTY</span>
+        <span className="provider-image-demo-label">{property.isDemo ? "DEMO PROPERTY" : "LOCAL DEMO"}</span>
       </Link>
       <div className="provider-property-content">
         <div className="provider-property-title-row">
@@ -70,7 +78,7 @@ export default function ProviderPropertyCard({ property }) {
           )}
         </div>
         <div className="provider-property-footer">
-          <span>Example property · demo data</span>
+          <span>{property.isDemo ? "Example property · demo data" : "Saved in this browser"}</span>
           <Link
             className="provider-manage-link"
             to={`/provider/properties/${property.id}`}

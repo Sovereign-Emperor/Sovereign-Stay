@@ -17,7 +17,10 @@ describe("PropertyPage", () => {
       await screen.findByRole("heading", { name: "Greenview Student Residences" }),
     ).toBeInTheDocument();
     expect(screen.getByText("2 in a room")).toBeInTheDocument();
-    expect(screen.getByText("Not live or verified")).toBeInTheDocument();
+    expect(screen.getByText("No real-time availability feed")).toBeInTheDocument();
+    expect(screen.getByRole("link", {
+      name: /enquire about real accommodation options via whatsapp/i,
+    })).toHaveAttribute("target", "_blank");
   });
 
   it("shows the existing not-found state for an unknown listing id", async () => {

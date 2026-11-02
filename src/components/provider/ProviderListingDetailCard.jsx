@@ -1,4 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatPrice } from "../../utils/format";
 import ProviderStatusBadge from "./ProviderStatusBadge";
@@ -59,8 +59,11 @@ export default function ProviderListingDetailCard({ listing }) {
 
       <footer className="provider-listing-detail-footer">
         <span>Example pricing and room counts only · not live availability</span>
-        <Link to={`/properties/${listing.id}`}>
-          View listing preview <ArrowUpRight size={15} aria-hidden="true" />
+        <Link to={`/provider/listings/${listing.id}`}>
+          Preview listing <ArrowUpRight size={15} aria-hidden="true" />
+        </Link>
+        <Link to={`/provider/listings/${listing.id}/edit`}>
+          Edit <Pencil size={14} aria-hidden="true" />
         </Link>
       </footer>
     </article>
