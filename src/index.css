@@ -937,3 +937,26 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px
   .provider-listing-filters label, .provider-enquiry-status-filter { min-width: 0; }
   .provider-enquiry-detail-card dl { grid-template-columns: 1fr; }
 }
+
+.booking-panel { margin-top: 16px; padding: 15px; border: 1px solid #dfe5da; background: #f7f9f4; }
+.booking-panel h3, .booking-history h4 { margin: 0 0 9px; color: #314433; font-family: "Manrope", sans-serif; font-size: 15px; }
+.booking-panel > p { color: #5e6b5d; font-size: 9px; line-height: 1.6; }
+.booking-panel form { display: grid; gap: 10px; }
+.booking-panel form label { display: grid; gap: 5px; color: #4e5e4d; font-size: 9px; font-weight: 650; }
+.booking-panel form select, .booking-panel form input { width: 100%; min-width: 0; min-height: 40px; padding: 9px; border: 1px solid #dfe5da; color: #354638; background: #fff; font: inherit; font-size: 10px; }
+.booking-panel form :focus-visible, .booking-panel button:focus-visible, .student-bookings-page button:focus-visible { outline: 2px solid #849b68; outline-offset: 2px; }
+.booking-panel form button, .booking-panel > button, .booking-history button { min-height: 40px; padding: 9px 12px; border: 0; color: #fff; background: var(--forest); font: inherit; font-size: 9px; font-weight: 700; cursor: pointer; }
+.booking-panel button:disabled, .student-bookings-page button:disabled { opacity: .6; cursor: wait; }
+.booking-history { display: grid; gap: 8px; margin-top: 15px; }
+.booking-history article, .student-bookings-page article { display: grid; gap: 7px; min-width: 0; padding: 12px; border: 1px solid #e3e7df; background: #fff; overflow-wrap: anywhere; }
+.booking-history article > * { margin: 0; color: #566456; font-size: 9px; line-height: 1.55; }
+.student-bookings-page { width: min(100% - 32px, 900px); margin: 0 auto; padding: 48px 0 72px; }
+.student-bookings-page > header { margin-bottom: 22px; }
+.student-bookings-page h1 { margin: 0 0 8px; color: #263d2b; font-family: "Manrope", sans-serif; font-size: clamp(26px, 5vw, 42px); letter-spacing: -.04em; }
+.student-bookings-page h2 { margin: 0; color: #314433; font-family: "Manrope", sans-serif; font-size: 17px; }
+.student-bookings-page p, .student-bookings-page small { color: #647064; font-size: 10px; line-height: 1.6; }
+.student-bookings-page > div { display: grid; gap: 12px; }
+.student-bookings-page article strong { color: #344638; font-size: 10px; }
+.student-bookings-page article button { justify-self: start; min-height: 38px; padding: 8px 11px; border: 1px solid #d7dfd1; color: #354a36; background: #f7f9f4; font: inherit; font-size: 9px; cursor: pointer; }
+.student-bookings-page section { padding: 18px; border: 1px solid #e3e7df; background: #fbfcf9; }
+.student-bookings-page section a { color: #36573b; font-size: 10px; font-weight: 700; }

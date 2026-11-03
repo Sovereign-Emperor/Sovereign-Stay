@@ -55,6 +55,33 @@ Deno.serve(async (request) => {
       return response({ error: "This payment attempt cannot be initialized again." }, 409, origin);
     }
 
+    const rawPaymentPercent = Deno.env.get("PAYMENT_AMOUNT_PERCENT") ?? "100";
+    if (!/^(?:[1-9]\d?|100)$/.test(rawPaymentPercent)) {
+      const { error: failureError } = await serviceClient.rpc("mark_paystack_initialization_failed", {
+        p_payment_id: payment.id,
+        p_failure_reason: "Server payment amount policy is invalid.",
+      });
+      if (failureError) console.error("paystack.payment_policy_failure_record_failed", { paymentId: payment.id });
+      return response({ error: "The server payment amount policy is invalid." }, 500, origin);
+    }
+    const { data: amountPesewas, error: amountError } = await serviceClient.rpc(
+      "configure_booking_payment_amount",
+      {
+        p_payment_id: payment.id,
+        p_student_user_id: user.id,
+        p_payment_percent: Number(rawPaymentPercent),
+      },
+    );
+    if (amountError || !Number.isSafeInteger(amountPesewas) || amountPesewas <= 0) {
+      console.error("paystack.payment_amount_policy_failed", { paymentId: payment.id });
+      const { error: failureError } = await serviceClient.rpc("mark_paystack_initialization_failed", {
+        p_payment_id: payment.id,
+        p_failure_reason: "Configured payment amount could not be applied.",
+      });
+      if (failureError) console.error("paystack.payment_policy_failure_record_failed", { paymentId: payment.id });
+      return response({ error: "The configured payment amount could not be applied." }, 409, origin);
+    }
+
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -63,7 +90,7 @@ Deno.serve(async (request) => {
       },
       body: JSON.stringify({
         email: user.email,
-        amount: payment.amount_pesewas,
+        amount: amountPesewas,
         currency: "GHS",
         reference: payment.reference,
         callback_url: `${appOrigin}/payment/complete`,
@@ -103,7 +130,7 @@ Deno.serve(async (request) => {
     return response({
       authorizationUrl,
       reference: payment.reference,
-      amountPesewas: payment.amount_pesewas,
+      amountPesewas,
       currency: payment.currency,
     }, 200, origin);
   } catch (error) {

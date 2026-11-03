@@ -24,6 +24,17 @@ import { isExplicitDemoMode, isExplicitSupabaseMode, supabaseConfigured } from "
 import { AuthProvider } from "./auth/AuthProvider";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PaymentCompletePage from "./pages/PaymentCompletePage";
+import StudentBookingsPage from "./pages/StudentBookingsPage";
+import ProviderBookingsPage from "./pages/provider/ProviderBookingsPage";
+import {
+  ProviderBackendDashboard,
+  ProviderBackendListingForm,
+  ProviderBackendListingPreview,
+  ProviderBackendListings,
+  ProviderBackendProperties,
+  ProviderBackendPropertyDetail,
+  ProviderBackendPropertyForm,
+} from "./pages/provider/ProviderBackendPages";
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -80,32 +91,34 @@ function AppRoutes() {
         <Route path="/auth/:mode" element={<AuthPage />} />
         <Route path="/auth/callback" element={<AuthPage />} />
         <Route path="/payment/complete" element={<RequireAuth role="student"><PaymentCompletePage /></RequireAuth>} />
+        <Route path="/student/bookings" element={<RequireAuth role="student"><StudentBookingsPage /></RequireAuth>} />
         <Route path="/provider/onboarding" element={<RequireAuth><ProviderOnboardingPage /></RequireAuth>} />
         <Route path="/admin" element={<RequireAuth role="admin"><AdminDashboardPage /></RequireAuth>} />
         <Route path="/" element={<HomePage />} />
         <Route path="/properties/:id" element={<PropertyPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/provider" element={<RequireAuth role="provider"><ProviderLayout /></RequireAuth>}>
-          <Route index element={<ProviderDashboardPage />} />
-          <Route path="properties" element={<ProviderPropertiesPage />} />
+          <Route index element={isExplicitSupabaseMode ? <ProviderBackendDashboard /> : <ProviderDashboardPage />} />
+          <Route path="properties" element={isExplicitSupabaseMode ? <ProviderBackendProperties /> : <ProviderPropertiesPage />} />
           <Route
             path="properties/new"
-            element={<ProviderPropertyFormPage />}
+            element={isExplicitSupabaseMode ? <ProviderBackendPropertyForm /> : <ProviderPropertyFormPage />}
           />
           <Route
             path="properties/:propertyId/edit"
-            element={<ProviderPropertyFormPage />}
+            element={isExplicitSupabaseMode ? <ProviderBackendPropertyForm /> : <ProviderPropertyFormPage />}
           />
           <Route
             path="properties/:propertyId"
-            element={<ProviderManagePropertyPage />}
+            element={isExplicitSupabaseMode ? <ProviderBackendPropertyDetail /> : <ProviderManagePropertyPage />}
           />
-          <Route path="listings" element={<ProviderListingsPage />} />
-          <Route path="listings/new" element={<ProviderListingFormPage />} />
-          <Route path="listings/:listingId/edit" element={<ProviderListingFormPage />} />
-          <Route path="listings/:listingId" element={<ProviderListingPreviewPage />} />
+          <Route path="listings" element={isExplicitSupabaseMode ? <ProviderBackendListings /> : <ProviderListingsPage />} />
+          <Route path="listings/new" element={isExplicitSupabaseMode ? <ProviderBackendListingForm /> : <ProviderListingFormPage />} />
+          <Route path="listings/:listingId/edit" element={isExplicitSupabaseMode ? <ProviderBackendListingForm /> : <ProviderListingFormPage />} />
+          <Route path="listings/:listingId" element={isExplicitSupabaseMode ? <ProviderBackendListingPreview /> : <ProviderListingPreviewPage />} />
           <Route path="enquiries" element={<ProviderEnquiriesPage />} />
           <Route path="enquiries/:enquiryId" element={<ProviderEnquiryDetailPage />} />
+          <Route path="bookings" element={<ProviderBookingsPage />} />
           <Route
             path="*"
             element={<ProviderPlaceholderPage page="not-found" />}

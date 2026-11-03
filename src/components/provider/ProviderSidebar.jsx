@@ -1,5 +1,6 @@
-import { Building2, ClipboardList, FileText, LayoutDashboard, MessageSquareText, Plus, Store } from "lucide-react";
+import { Building2, ClipboardList, FileText, LayoutDashboard, MessageSquareText, Plus, Store, CalendarDays } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
+import { isExplicitSupabaseMode } from "../../data/supabaseClient";
 
 /**
  * Provider workspace navigation for desktop and small screens.
@@ -18,7 +19,7 @@ export default function ProviderSidebar({ isOpen, onNavigate }) {
       </Link>
       <div className="provider-workspace-label">
         <span className="provider-workspace-icon"><Store size={16} /></span>
-        <span><strong>Example workspace</strong><small>DEMO PROVIDER</small></span>
+        <span><strong>{isExplicitSupabaseMode ? "Provider workspace" : "Example workspace"}</strong><small>{isExplicitSupabaseMode ? "SUPABASE" : "DEMO PROVIDER"}</small></span>
       </div>
       <nav className="provider-sidebar-nav" aria-label="Provider navigation">
         <p className="provider-nav-heading">WORKSPACE</p>
@@ -34,6 +35,9 @@ export default function ProviderSidebar({ isOpen, onNavigate }) {
         <NavLink to="/provider/enquiries" onClick={onNavigate}>
           <MessageSquareText size={17} /> Enquiries
         </NavLink>
+        <NavLink to="/provider/bookings" onClick={onNavigate}>
+          <CalendarDays size={17} /> Bookings
+        </NavLink>
         <NavLink to="/provider/properties/new" onClick={onNavigate}>
           <Plus size={17} /> Add property
         </NavLink>
@@ -44,8 +48,8 @@ export default function ProviderSidebar({ isOpen, onNavigate }) {
       </nav>
       <div className="provider-sidebar-note">
         <span className="provider-demo-dot" />
-        Demo mode
-        <p>Changes stay in this browser; no account or backend is connected.</p>
+        {isExplicitSupabaseMode ? "Database workspace" : "Demo mode"}
+        <p>{isExplicitSupabaseMode ? "Changes are stored in Supabase; publishing requires moderator approval." : "Changes stay in this browser; no account or backend is connected."}</p>
       </div>
     </aside>
   );

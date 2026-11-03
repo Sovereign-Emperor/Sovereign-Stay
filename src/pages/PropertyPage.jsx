@@ -5,6 +5,8 @@ import ListingEnquiryForm from "../components/ListingEnquiryForm";
 import ListingImage from "../components/ListingImage";
 import PhotoGallery from "../components/PhotoGallery";
 import WhatsAppLink from "../components/WhatsAppLink";
+import BookingRequestPanel from "../components/BookingRequestPanel";
+import { isExplicitSupabaseMode } from "../data/supabaseClient";
 import { useListingById } from "../hooks/useListings";
 import { formatPrice } from "../utils/format";
 
@@ -28,7 +30,7 @@ export default function PropertyPage() {
   }
 
   if (isLoading) {
-    return <main className="not-found container"><p role="status">Loading demonstration listing…</p></main>;
+    return <main className="not-found container">    <p role="status">Loading listing…</p></main>;
   }
 
   if (error) {
@@ -47,7 +49,7 @@ export default function PropertyPage() {
       <div className="container property-container">
         <Link className="back-link" to="/"><ArrowLeft size={16} /> All places</Link>
         <div className="detail-heading">
-          <div><p className="eyebrow">{property.type} <span className="detail-dot">·</span> {property.area || property.location} <span className="detail-dot">·</span> DEMO LISTING</p><h1>{property.name}</h1><p className="detail-address"><MapPin size={16} />{property.location}{Number.isFinite(property.distanceKm) && <><span>·</span>approximately {property.distanceKm} km from KTU</>}</p></div>
+          <div><p className="eyebrow">{property.type} <span className="detail-dot">·</span> {property.area || property.location}{property.isDemo && <> <span className="detail-dot">·</span> DEMO LISTING</>}</p><h1>{property.name}</h1><p className="detail-address"><MapPin size={16} />{property.location}{Number.isFinite(property.distanceKm) && <><span>·</span>approximately {property.distanceKm} km from KTU</>}</p></div>
           <button type="button" className="share-button" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); window.alert("Property link copied."); } catch { window.prompt("Copy this property link:", window.location.href); } }}><ArrowUpRight size={16} /> Share</button>
         </div>
         <div className="gallery-grid">
@@ -76,13 +78,13 @@ export default function PropertyPage() {
         <div className="detail-layout">
           <div className="detail-main">
             <section className="detail-summary">
-              <div><p className="eyebrow">{property.school || "Student accommodation"}</p><h2>{property.roomType} <span>·</span> demo listing</h2><p className="summary-type">{property.type} in {property.area || property.location}</p>{property.propertyName && <p className="summary-type">Physical property: {property.propertyName}</p>}</div>
+              <div><p className="eyebrow">{property.school || "Student accommodation"}</p><h2>{property.roomType}{property.isDemo && <> <span>·</span> demo listing</>}</h2><p className="summary-type">{property.type} in {property.area || property.location}</p>{property.propertyName && <p className="summary-type">Physical property: {property.propertyName}</p>}</div>
               <div className="host-avatar" aria-hidden="true">SS</div>
             </section>
             <div className="detail-facts">
               <div><BedDouble size={20} /><span><strong>{property.roomOffers.length} room options</strong><small>Listed on this advertisement</small></span></div>
-              <div><Users size={20} /><span><strong>{property.availableRooms} reported rooms</strong><small>Provider-reported demo data</small></span></div>
-              <div><Clock3 size={20} /><span><strong>{property.availabilityStatus === "unknown" ? "Not confirmed" : property.availabilityStatus}</strong><small>No real-time availability feed</small></span></div>
+              <div><Users size={20} /><span><strong>{property.availableRooms || "Quantity not reported"} {property.isDemo ? "reported rooms" : "rooms listed"}</strong><small>{property.isDemo ? "Provider-reported demo data" : "Provider-submitted room offer quantities"}</small></span></div>
+              <div><Clock3 size={20} /><span><strong>{property.availabilityStatus === "unknown" ? "Not confirmed" : property.availabilityStatus}</strong><small>{property.isDemo ? "No real-time availability feed" : "Confirm current status with provider"}</small></span></div>
             </div>
             <section className="detail-section">
               <p className="eyebrow">THE FEELING</p><h3>A good place to land.</h3><p className="detail-description">{property.description}</p>
@@ -92,7 +94,7 @@ export default function PropertyPage() {
               <p className="eyebrow">ROOM OPTIONS</p><h3 id="student-room-offers-heading">Prices and room types</h3>
               {property.roomOffers.length ? <div className="student-room-offers">{property.roomOffers.map((offer) => (
                 <article key={offer.id}>
-                  <div><h4>{offer.roomTypeLabel ?? offer.roomType}</h4><p>{offer.occupancy} {offer.occupancy === 1 ? "person" : "people"} · {offer.quantity ?? offer.exampleRoomCount} reported room(s)</p></div>
+                  <div><h4>{offer.roomTypeLabel ?? offer.roomType}</h4><p>{offer.occupancy} {offer.occupancy === 1 ? "person" : "people"} · {offer.quantity ?? offer.exampleRoomCount ?? "Quantity not reported"} {property.isDemo ? "reported room(s)" : "room(s) listed"}</p></div>
                   <strong>{formatPrice(offer.price)} <span>/ {pricePeriodLabel(offer.pricePeriod)}</span></strong>
                   <p>{offer.description || "No room description provided."}</p>
                   <small>Availability: {offer.availabilityStatus === "unknown" ? "not confirmed" : offer.availabilityStatus}</small>
@@ -108,7 +110,7 @@ export default function PropertyPage() {
             <section className="detail-section rules-section">
               <p className="eyebrow">A FEW HOUSE NOTES</p><h3>Good to know</h3>
               <div className="house-rules">{property.rules.map((rule) => <span key={rule}><ShieldCheck size={16} />{rule}</span>)}</div>
-              <p className="availability-note"><Clock3 size={15} /> Local demo listing. No live availability or property verification is provided.</p>
+              <p className="availability-note"><Clock3 size={15} /> {property.isDemo ? "Local demo listing. No live availability or property verification is provided." : "Availability reflects provider-submitted records and is not a real-time guarantee."}</p>
             </section>
             <section className="detail-section location-section">
               <p className="eyebrow">THE NEIGHBOURHOOD</p><h3>Easy to find your way.</h3>
@@ -123,11 +125,12 @@ export default function PropertyPage() {
           <aside className="enquiry-card">
             <p className="eyebrow">A PLACE TO CALL YOURS</p>
             <p className="enquiry-price">{property.price != null ? <><strong>{formatPrice(property.price)}</strong><span> / {pricePeriodLabel(property.pricePeriod)}</span></> : <strong>Price not provided</strong>}</p>
-            <p className="enquiry-small">Example price · local demo</p>
+            <p className="enquiry-small">{property.isDemo ? "Example price · local demo" : "Provider-submitted price · confirm before committing"}</p>
             <div className="availability-box"><span className="availability-indicator" /><span><strong>{property.availabilityStatus === "unknown" ? "Availability not confirmed" : property.availabilityStatus}</strong><small>Not real-time or verified</small></span></div>
+            {isExplicitSupabaseMode && !property.isDemo && <BookingRequestPanel listing={property} />}
             <ListingEnquiryForm listingId={property.id} listingName={property.name} />
-            <WhatsAppLink propertyName={property.name} className="listing-whatsapp-link">Ask about real options</WhatsAppLink>
-            <div className="listing-updated"><Clock3 size={14} /> Local demo listing<span>NOT VERIFIED</span></div>
+            {property.isDemo && <WhatsAppLink propertyName={property.name} className="listing-whatsapp-link">Ask about real options</WhatsAppLink>}
+            {property.isDemo && <div className="listing-updated"><Clock3 size={14} /> Local demo listing<span>NOT VERIFIED</span></div>}
           </aside>
         </div>
         <div className="detail-bottom-cta"><p>Found your kind of place?</p><Link to="/" className="text-link">Explore more stays <ArrowRight size={16} /></Link></div>

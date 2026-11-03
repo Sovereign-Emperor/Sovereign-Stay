@@ -3,6 +3,8 @@ import { ArrowRight, Inbox, MessageSquareText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DEMO_PROVIDER_ID } from "../../data/demoProviderRepository";
 import { getProviderEnquiries } from "../../services/enquiryService";
+import { isExplicitSupabaseMode } from "../../data/supabaseClient";
+import { ProviderBackendEnquiries } from "./ProviderBackendEnquiries";
 
 const statuses = [
   ["", "All statuses"],
@@ -11,7 +13,7 @@ const statuses = [
   ["closed", "Closed"],
 ];
 
-export default function ProviderEnquiriesPage() {
+function DemoProviderEnquiriesPage() {
   const [status, setStatus] = useState("");
   let enquiries;
   try {
@@ -45,4 +47,8 @@ export default function ProviderEnquiriesPage() {
       )}
     </div>
   );
+}
+
+export default function ProviderEnquiriesPage() {
+  return isExplicitSupabaseMode ? <ProviderBackendEnquiries /> : <DemoProviderEnquiriesPage />;
 }

@@ -8,6 +8,8 @@ import {
   getMarketplaceListings as getPublishedListings,
   getProviderListingById,
 } from "./providerListingService";
+import { createSupabaseEnquiry } from "../data/supabaseEnquiryRepository";
+import { isExplicitSupabaseMode } from "../data/supabaseClient";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9\s()-]{7,20}$/;
@@ -45,6 +47,13 @@ export function submitListingEnquiry(listingId, values) {
     message: values.message.trim(),
     viewingDate: values.viewingDate || null,
   });
+}
+
+export async function submitAuthenticatedListingEnquiry(listingId, values, idempotencyKey) {
+  const errors = validateEnquiry(values);
+  if (Object.keys(errors).length) throw new Error(Object.values(errors).join(" "));
+  if (!isExplicitSupabaseMode) throw new Error("Authenticated enquiries require explicit Supabase mode.");
+  return createSupabaseEnquiry(listingId, values, idempotencyKey);
 }
 
 function getProviderListingByIdForPublic(listingId) {

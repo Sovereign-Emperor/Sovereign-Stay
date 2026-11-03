@@ -3,6 +3,9 @@ import ProviderStoredImage from "./provider/ProviderStoredImage";
 
 /** Render either a catalogue image ID or a browser-persisted property photo. */
 export default function ListingImage({ photo, alt, width = 900, loading = "lazy", className = "" }) {
+  if (photo && typeof photo === "object" && photo.url) {
+    return <img className={`property-image ${className}`} src={photo.url} alt={photo.alt || alt} loading={loading} />;
+  }
   if (photo && typeof photo === "object" && photo.isLocal) {
     return <ProviderStoredImage photo={photo} alt={alt} className={className} />;
   }

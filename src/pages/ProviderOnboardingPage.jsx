@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { isExplicitSupabaseMode } from "../data/supabaseClient";
 import { createProviderBusiness } from "../services/authService";
@@ -36,7 +37,8 @@ export default function ProviderOnboardingPage() {
         <section className="auth-card" aria-labelledby="provider-onboarding-heading">
           <p className="provider-eyebrow">PROVIDER ACCOUNT SETUP</p>
           <h1 id="provider-onboarding-heading">Provider access is set up</h1>
-          <p className="auth-notice" role="status">Your provider role is recorded by Supabase. Provider listing management is not yet connected to live repositories, so no properties or listings can be managed in this account yet.</p>
+          <p className="auth-notice" role="status">Your provider role and business membership are recorded by Supabase. Property and listing changes are stored in the configured project.</p>
+          <Link className="provider-primary-button" to="/provider">Open provider workspace</Link>
         </section>
       </main>
     );

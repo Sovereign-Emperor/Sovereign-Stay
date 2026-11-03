@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import ProviderHeader from "../../components/provider/ProviderHeader";
 import ProviderSidebar from "../../components/provider/ProviderSidebar";
+import { isExplicitSupabaseMode } from "../../data/supabaseClient";
 
 function getProviderPageTitle(pathname) {
   if (pathname === "/provider") return "Overview";
@@ -14,6 +15,7 @@ function getProviderPageTitle(pathname) {
   if (pathname.endsWith("/edit")) return "Edit property";
   if (pathname.includes("/properties/")) return "Property overview";
   if (pathname.startsWith("/provider/enquiries")) return "Enquiries";
+  if (pathname.startsWith("/provider/bookings")) return "Bookings";
   return "Provider workspace";
 }
 
@@ -50,7 +52,7 @@ export default function ProviderLayout() {
         </main>
         <footer className="provider-footer">
           <span>Sovereign Stay · Provider tools</span>
-          <span>DEMONSTRATION ONLY · Data stays in this browser</span>
+          <span>{isExplicitSupabaseMode ? "SUPABASE WORKSPACE · Role-based access enforced by the database" : "DEMONSTRATION ONLY · Data stays in this browser"}</span>
         </footer>
       </div>
     </div>

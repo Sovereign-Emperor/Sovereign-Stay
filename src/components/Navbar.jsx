@@ -39,6 +39,7 @@ export default function Navbar() {
           <NavLink to="/" end onClick={closeMenu}>Find a place</NavLink>
           <NavLink to="/about" onClick={closeMenu}>About us</NavLink>
           <NavLink to="/provider" onClick={closeMenu}>For providers</NavLink>
+          {auth.roles.includes("student") && <NavLink to="/student/bookings" onClick={closeMenu}>My bookings</NavLink>}
           {auth.roles.includes("admin") && <Link to="/admin" onClick={closeMenu}>Administration</Link>}
           {auth.user
             ? <button className="nav-account-action" type="button" onClick={handleSignOut}>Sign out</button>

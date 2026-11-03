@@ -5,6 +5,7 @@ import PropertyCard from "../components/PropertyCard";
 import PropertyImage from "../components/PropertyImage";
 import { useListingFilterOptions, useListingSearch } from "../hooks/useListings";
 import { validatePriceRange } from "../utils/propertyFilters";
+import { isExplicitSupabaseMode } from "../data/supabaseClient";
 
 const initialFilters = {
   query: "",
@@ -55,7 +56,7 @@ export default function HomePage() {
           <p className="hero-copy">Good rooms. Clear prices. Right around campus.<br className="desktop-break" /> Your search for somewhere to belong starts here.</p>
           <a className="hero-scroll" href="#listings"><span><ArrowDown size={16} /></span> FIND YOUR PLACE</a>
           <div className="hero-stats">
-            <div><strong>{options.totalListings ?? "…"}</strong><span>demo places to explore</span></div>
+            <div><strong>{options.totalListings ?? "…"}</strong><span>{isExplicitSupabaseMode ? "published places to explore" : "demo places to explore"}</span></div>
             <div><strong>1</strong><span>student community</span></div>
             <div><strong>0</strong><span>guesswork required</span></div>
           </div>
@@ -93,12 +94,12 @@ export default function HomePage() {
               <label className="select-wrap"><span className="sr-only">Filter by room type</span><select value={filters.roomType} onChange={(event) => setFilter("roomType", event.target.value)}><option value="">Any room type</option>{options.roomTypes.map((room) => <option key={room}>{room}</option>)}</select><ChevronDown size={14} /></label>
               <label className="select-wrap"><span className="sr-only">Filter by accommodation type</span><select value={filters.propertyType} onChange={(event) => setFilter("propertyType", event.target.value)}><option value="">Any accommodation type</option>{options.propertyTypes.map((type) => <option key={type}>{type}</option>)}</select><ChevronDown size={14} /></label>
               <label className="select-wrap"><span className="sr-only">Filter by room availability</span><select value={filters.availabilityStatus} onChange={(event) => setFilter("availabilityStatus", event.target.value)}><option value="">Any availability status</option>{options.availabilityStatuses.map((status) => <option key={status} value={status}>{status === "unknown" ? "Not confirmed" : status[0].toUpperCase() + status.slice(1)}</option>)}</select><ChevronDown size={14} /></label>
-              <div className="price-filter" role="group" aria-label="Filter by semester price in Ghana cedis">
+              <div className="price-filter" role="group" aria-label="Filter by room price in Ghana cedis">
                 <span className="price-filter-currency">GHS</span>
-                <label className="sr-only" htmlFor="minimum-price">Minimum semester price in GHS</label>
+                <label className="sr-only" htmlFor="minimum-price">{isExplicitSupabaseMode ? "Minimum room price in GHS" : "Minimum semester price in GHS"}</label>
                 <input id="minimum-price" type="number" min="0" step="1" placeholder="Min" value={filters.minPrice} aria-invalid={Boolean(priceError)} aria-describedby={priceError ? "price-filter-error" : undefined} onChange={(event) => setFilter("minPrice", event.target.value)} />
                 <span className="price-filter-divider" aria-hidden="true">–</span>
-                <label className="sr-only" htmlFor="maximum-price">Maximum semester price in GHS</label>
+                <label className="sr-only" htmlFor="maximum-price">{isExplicitSupabaseMode ? "Maximum room price in GHS" : "Maximum semester price in GHS"}</label>
                 <input id="maximum-price" type="number" min="0" step="1" placeholder="Max" value={filters.maxPrice} aria-invalid={Boolean(priceError)} aria-describedby={priceError ? "price-filter-error" : undefined} onChange={(event) => setFilter("maxPrice", event.target.value)} />
               </div>
               <label className="select-wrap"><span className="sr-only">Filter by facility</span><select value={filters.facility} onChange={(event) => setFilter("facility", event.target.value)}><option value="">Any facility</option>{options.facilities.map((facility) => <option key={facility}>{facility}</option>)}</select><ChevronDown size={14} /></label>
@@ -139,7 +140,7 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="demo-disclaimer"><Sparkles size={15} /><span>Every listing, photo, price, and room count is for demonstration only. None is a real or verified accommodation offer.</span></div>
+          <div className="demo-disclaimer"><Sparkles size={15} /><span>{isExplicitSupabaseMode ? "Listing details are provider-submitted and have not been independently verified. Confirm price and room availability directly before making a decision." : "Every listing, photo, price, and room count is for demonstration only. None is a real or verified accommodation offer."}</span></div>
         </div>
       </section>
 

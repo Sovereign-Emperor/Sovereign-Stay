@@ -55,7 +55,15 @@ export function filterProperties(listings, filters) {
 
   return listings.filter((property) => {
     const searchableText = `${property.name} ${property.location}`.toLowerCase();
+    const offers = Array.isArray(property.roomOffers) ? property.roomOffers : [];
     const hasPrice = property.price != null && Number.isFinite(Number(property.price));
+    const matchesPrice = !hasPriceBounds || (offers.length
+      ? offers.some(({ price }) => Number.isFinite(Number(price)) &&
+        (minimum === null || Number(price) >= minimum) &&
+        (maximum === null || Number(price) <= maximum))
+      : hasPrice &&
+        (minimum === null || Number(property.price) >= minimum) &&
+        (maximum === null || Number(property.price) <= maximum));
 
     return (
       (!query || searchableText.includes(query)) &&
@@ -64,9 +72,7 @@ export function filterProperties(listings, filters) {
       (!filters.roomType || property.roomType === filters.roomType) &&
       (!filters.propertyType || property.type === filters.propertyType) &&
       (!filters.availabilityStatus || property.availabilityStatus === filters.availabilityStatus) &&
-      (!hasPriceBounds || (hasPrice &&
-        (minimum === null || Number(property.price) >= minimum) &&
-        (maximum === null || Number(property.price) <= maximum))) &&
+      matchesPrice &&
       (!filters.facility || property.facilities.includes(filters.facility))
     );
   });

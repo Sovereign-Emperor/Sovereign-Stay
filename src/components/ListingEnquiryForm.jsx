@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
 import { Send } from "lucide-react";
 import { submitListingEnquiry, validateEnquiry } from "../services/enquiryService";
+import { submitAuthenticatedListingEnquiry } from "../services/enquiryService";
+import { useOptionalAuth } from "../auth/AuthProvider";
+import { isExplicitSupabaseMode } from "../data/supabaseClient";
 
 const initialValues = {
   name: "",
@@ -17,13 +20,15 @@ export default function ListingEnquiryForm({ listingId, listingName }) {
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitLock = useRef(false);
+  const idempotencyKey = useRef(crypto.randomUUID());
+  const auth = useOptionalAuth();
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     if (submitLock.current) return;
     const nextErrors = validateEnquiry(values);
@@ -38,11 +43,18 @@ export default function ListingEnquiryForm({ listingId, listingName }) {
     submitLock.current = true;
     setIsSubmitting(true);
     try {
-      const result = submitListingEnquiry(listingId, values);
-      setSuccess(result.duplicate
-        ? "This enquiry was already saved in this browser demo."
-        : "Your enquiry was saved in this browser demo. It is not sent to a provider in real time.");
-      if (!result.duplicate) setValues(initialValues);
+      if (isExplicitSupabaseMode) {
+        await submitAuthenticatedListingEnquiry(listingId, values, idempotencyKey.current);
+        idempotencyKey.current = crypto.randomUUID();
+        setSuccess("Your enquiry was sent securely. The provider can review it in their inbox.");
+        setValues(initialValues);
+      } else {
+        const result = submitListingEnquiry(listingId, values);
+        setSuccess(result.duplicate
+          ? "This enquiry was already saved in this browser demo."
+          : "Your enquiry was saved in this browser demo. It is not sent to a provider in real time.");
+        if (!result.duplicate) setValues(initialValues);
+      }
     } catch (cause) {
       setError(cause.message || "Your enquiry could not be saved.");
     } finally {
@@ -70,7 +82,9 @@ export default function ListingEnquiryForm({ listingId, listingName }) {
   return (
     <form className="student-enquiry-form" onSubmit={handleSubmit} noValidate>
       <h3>Ask about this listing</h3>
-      <p>Enquiries are saved only in this browser demo; they are not sent in real time.</p>
+      <p>{isExplicitSupabaseMode ? "Enquiries are delivered to the provider inbox and stored with this listing." : "Enquiries are saved only in this browser demo; they are not sent in real time."}</p>
+      {isExplicitSupabaseMode && !auth?.user && <p role="note"><a href={`/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`}>Sign in</a> to send an enquiry. Your message is linked to your verified student account.</p>}
+      {isExplicitSupabaseMode && auth?.user && !auth.roles.includes("student") && <p role="note">A student account is required to send an enquiry.</p>}
       {success && <p className="student-enquiry-success" role="status">{success}</p>}
       {error && <p className="student-enquiry-error-banner" role="alert">{error}</p>}
       {field("name", "Your name")}
@@ -82,7 +96,7 @@ export default function ListingEnquiryForm({ listingId, listingName }) {
         <textarea id="enquiry-message" rows="4" value={values.message} onChange={(event) => setField("message", event.target.value)} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "enquiry-message-error" : undefined} />
         {errors.message && <span className="student-enquiry-error" id="enquiry-message-error">{errors.message}</span>}
       </label>
-      <button className="enquiry-button" type="submit" disabled={isSubmitting}><Send size={16} />{isSubmitting ? "Saving enquiry…" : `Enquire about ${listingName}`}</button>
+      <button className="enquiry-button" type="submit" disabled={isSubmitting || (isExplicitSupabaseMode && (!auth?.user || !auth.roles.includes("student")))}><Send size={16} />{isSubmitting ? "Saving enquiry…" : `Enquire about ${listingName}`}</button>
     </form>
   );
 }

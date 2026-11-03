@@ -6,10 +6,12 @@ import {
   getProviderEnquiry,
   updateProviderEnquiryStatus,
 } from "../../services/enquiryService";
+import { isExplicitSupabaseMode } from "../../data/supabaseClient";
+import { ProviderBackendEnquiryDetail } from "./ProviderBackendEnquiries";
 
 const labelByStatus = { new: "New", in_progress: "Contacted", closed: "Closed" };
 
-export default function ProviderEnquiryDetailPage() {
+function DemoProviderEnquiryDetailPage() {
   const { enquiryId } = useParams();
   const [enquiry, setEnquiry] = useState(() => getProviderEnquiry(DEMO_PROVIDER_ID, enquiryId));
   const [error, setError] = useState("");
@@ -55,4 +57,8 @@ export default function ProviderEnquiryDetailPage() {
       </section>
     </div>
   );
+}
+
+export default function ProviderEnquiryDetailPage() {
+  return isExplicitSupabaseMode ? <ProviderBackendEnquiryDetail /> : <DemoProviderEnquiryDetailPage />;
 }

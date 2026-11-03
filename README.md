@@ -2,7 +2,7 @@
 
 A mobile-first student accommodation discovery MVP for students around Koforidua Technical University (KTU). It is built with React, Vite, React Router, Tailwind CSS v4, and Lucide icons.
 
-> **Prototype status:** All browser-local property data is illustrative and is not verified real-world accommodation or live availability. Supabase authentication and server-side payment verification scaffolding are included, but the marketplace repositories, booking screens, and payment initiation UI are not connected. Do not treat this repository as production-ready.
+> **Prototype status:** Demo listings are illustrative and are not verified real-world accommodation or live availability. Supabase-mode pages now use live repository and RPC adapters, but the migrations, row-level security, storage policies, email setup, and Paystack sandbox journey have not been validated against a configured Supabase project. Do not treat this repository as production-ready.
 
 ## Run locally
 
@@ -22,7 +22,7 @@ A mobile-first student accommodation discovery MVP for students around Koforidua
 
    Use an international WhatsApp number with digits only. If the number is blank, enquiry links open WhatsApp with a pre-filled message so the student can choose a contact.
 
-   For local sample listings, explicitly set `VITE_DATA_MODE=demo`. The Vite development server also uses the demo workspace when no Supabase project is configured. Do not use demo mode for a production deployment. `VITE_DATA_MODE=supabase` currently enables the authentication/admin scaffolding only; it deliberately blocks marketplace routes until live repositories are implemented.
+   For local sample listings, explicitly set `VITE_DATA_MODE=demo`. Supabase mode requires `VITE_DATA_MODE=supabase`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY`. In Supabase mode, missing backend data or permissions are reported as errors; the application does not silently show local demo records. Do not use demo mode for a production deployment. The current Supabase routes are an integration prototype and remain blocked by missing configuration or database setup.
 
    Vite embeds variables prefixed with `VITE_` in browser code. Use them only for contact details intentionally made public; never put passwords, API secrets, or private credentials in these variables.
 
@@ -82,7 +82,8 @@ supabase/
 
 Tests live alongside the code they exercise in `*.test.js` and `*.test.jsx`
 files. They cover discovery, provider property and listing workflows, room
-offer validation, local enquiry submission, ownership checks, and regressions.
+offer validation, enquiry submission, booking service calls, ownership checks,
+and regressions. Mocked repository tests do not replace database/RLS tests.
 Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
 listing lifecycle, local demo storage, and the planned backend architecture.
 Read [docs/supabase-setup.md](./docs/supabase-setup.md) for local database
@@ -91,56 +92,55 @@ setup, Edge Function secrets, migration commands, and security warnings.
 ## What works in this MVP
 
 - Search by property name or location.
-- Filter by campus, neighbourhood, room arrangement, minimum and maximum semester price, and facilities; filters can be combined.
+- Filter by institution, neighbourhood, room arrangement, minimum and maximum price, availability, accommodation category, and facilities; filters can be combined.
 - Sort by recommendation, price, or distance to campus.
 - Open individual property pages with photo galleries, amenities, availability, location, and house notes.
-- Submit an enquiry from a published listing and, separately, open a demo-aware WhatsApp contact link.
+- In demo mode, submit a local enquiry and use the clearly labelled example WhatsApp action.
+- In configured Supabase mode, discover published listings, submit authenticated enquiries, request bookings for room offers, and view booking history.
 - Browse the About page and responsive mobile navigation.
-- At `/provider`, create and edit physical properties and linked listings, add room offers, save drafts, preview and publish listings in the local demo, and manage enquiries in the provider inbox.
+- At `/provider`, manage authorized Supabase properties and listings, add room offers, save drafts, preview or submit listings for moderator review, and manage enquiries and booking requests. Demo mode retains its separate browser-local workflow.
 
-Every property, listing, photo, price, room count, and availability value is demonstration content only. “Publishing” only changes visibility within the same browser's local demo workspace; it is not public publication, moderation, verification, or a claim of real availability.
+Demo properties, listings, photos, prices, room counts, and availability values are illustrative only. Demo publishing changes visibility only in that browser. Supabase listing submission enters the moderation workflow; only records whose database status is `published` appear in student discovery. Neither state represents verification or real-time availability.
 
 Tailwind CSS v4 is integrated through its Vite plugin in `vite.config.js`.
-Student-facing listing pages use `src/services/listingService.js`, which
-adapts normalized demo fixtures and locally saved provider listings through
-the shared listing view model. Only listings with `published` status appear in
-student discovery. Providers can keep drafts private, preview them, publish
-them within their local browser workspace, unpublish to draft, or archive
-them. Each listing points to a physical property by `propertyId`; room offers
-and enquiries are stored as separate related records.
+Student-facing listing pages use `src/services/listingService.js` and select
+either the explicitly configured Supabase repository or the separate demo
+repository. Only published records appear in student discovery. The Supabase
+provider editor saves listing and room-offer changes through database
+functions, which enforce provider membership. New submissions require
+moderator review; archived and draft records stay out of student search.
 
 The provider workspace composes repositories under `src/data/` with service
-logic under `src/services/`. Property metadata, listing records, room offers,
-and enquiries use browser `localStorage`; property image blobs are stored in
-IndexedDB. Records use stable local IDs and explicit property, listing, and
-provider relationships. This persistence is limited to the current browser
-profile: it is not a user account, synchronized backup, server, or production
-authorization boundary. Clearing browser data removes locally saved records.
+logic under `src/services/`. Demo property metadata, listings, room offers,
+and enquiries use browser `localStorage`; demo image blobs use IndexedDB.
+Supabase mode uses database records for properties, listings, room offers,
+enquiries, and bookings. Local and Supabase records are never merged. Actual
+Supabase persistence and authorization cannot be claimed until migrations
+have run and the project has been configured and tested.
 
-New listings require a valid property owned by the current demo provider.
-Publishing requires at least one valid room offer. Listing cards show starting
-prices based on their room offers, while detail pages show the individual
-options. Students can submit a local enquiry from published listing details;
-providers can filter the inbox and update enquiry status. The WhatsApp action
-remains a separate contact option and explicitly describes the listing as a
-demo example.
+In demo mode, new listings require a valid property owned by the current demo
+provider, and publishing requires at least one valid room offer. Listing cards
+show starting prices based on room offers, while detail pages show each option.
+Local demo enquiries stay in browser storage. WhatsApp is separate and
+explicitly describes demonstration listings as examples.
 
-The Supabase migrations now stage account/profile roles, properties, listings,
-room offers, enquiries, bookings, payment records, reviews, reports,
-notifications, audit events, RLS policies, and a private listing-media bucket.
-The frontend includes Supabase email-auth scaffolding, an administrator console,
-and server-side Paystack initiate/verify/webhook functions. These database and
-Edge Function changes have not been applied or exercised against a local or
-remote Supabase project. The current student/provider marketplace remains
-browser-local; no live listing/property/enquiry repository or booking request
-flow is wired yet. The payment callback verifies with the server, but there is
-no UI to create bookings or initiate a payment. The admin screen is available
-only in explicitly configured Supabase mode and every operation relies on
-database authorization; its first 100 rows per record category are shown.
+The migrations stage account/profile roles, properties, listings, normalized
+room offers and facilities, enquiries, bookings, payment records, trust
+records, RLS policies, and a private listing-media bucket. The frontend has
+Supabase email-auth, provider, student booking, enquiry inbox, and payment
+initiation interfaces. Listing photo uploads are stored as pending private
+media; without a trusted image-processing pipeline they are not shown to
+students. The current booking charge is the full accepted room-price snapshot
+in GHS by default. A server-side `PAYMENT_AMOUNT_PERCENT` setting (1–100,
+default 100) controls the initial charge percentage. The code paths and Edge Functions have not been validated against a
+local or remote Supabase project, so this is not evidence that backend,
+payment, or RLS behavior works in deployment.
 
-**Not production-ready:** no Supabase project is linked, migration/RLS tests
-have not run, and no credentials, email delivery, Paystack sandbox webhook,
-monitoring, hosting target, or domain have been configured. Do not use live
-payments. The payment function charges the accepted room's full price snapshot
-in GHS; deposit or fee rules need product approval before launch. See
-[docs/supabase-setup.md](./docs/supabase-setup.md) for exact setup and blockers.
+**Not production-ready:** no Supabase project is linked, migrations and RLS
+have not been run, and no email delivery, Paystack sandbox webhook, monitoring,
+hosting target, or domain have been configured. Do not use live payments.
+Consult [docs/supabase-setup.md](./docs/supabase-setup.md) for exact
+configuration and validation steps. The payment function currently charges
+the full accepted room price in GHS; deposit or fee policy still needs a
+product decision; the server percentage can be adjusted with
+`PAYMENT_AMOUNT_PERCENT`.

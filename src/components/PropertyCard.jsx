@@ -29,7 +29,7 @@ export default function PropertyCard({ property }) {
             className="property-card-image"
           />
         </Link>
-        <span className="demo-pill">DEMO LISTING</span>
+        {property.isDemo && <span className="demo-pill">DEMO LISTING</span>}
         <button
           type="button"
           className={`save-button${saved ? " is-saved" : ""}`}
@@ -39,7 +39,7 @@ export default function PropertyCard({ property }) {
         >
           <Heart size={18} fill={saved ? "currentColor" : "none"} />
         </button>
-        <span className="photo-note-pill">{property.photos[0]?.isLocal ? "LOCAL DEMO PHOTO" : "PHOTO FOR ILLUSTRATION"}</span>
+        {property.isDemo && <span className="photo-note-pill">{property.photos[0]?.isLocal ? "LOCAL DEMO PHOTO" : "PHOTO FOR ILLUSTRATION"}</span>}
       </div>
       <div className="property-card-content">
         <div className="property-card-heading">
@@ -61,7 +61,7 @@ export default function PropertyCard({ property }) {
             : `${property.availableRooms} reported room${property.availableRooms === 1 ? "" : "s"} · ${property.availabilityStatus}`}
         </p>
         <div className="property-card-footer">
-          <p>{property.price != null ? <><strong>{formatPrice(property.price)}</strong><span> / {String(property.pricePeriod ?? "period").replaceAll("_", " ")} · demo</span></> : <strong>Price not provided</strong>}</p>
+          <p>{property.price != null ? <><strong>{formatPrice(property.price)}</strong><span> / {String(property.pricePeriod ?? "period").replaceAll("_", " ")}{property.isDemo ? " · demo" : ""}</span></> : <strong>Price not provided</strong>}</p>
           <Link className="card-link" to={`/properties/${property.id}`} aria-label={`See details for ${property.name}`}>
             <ArrowUpRight size={19} />
           </Link>

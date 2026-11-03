@@ -1,10 +1,10 @@
 # Sovereign Stay data model and growth architecture
 
-This document describes the browser-local demonstration marketplace and the
-planned/implemented Supabase data model. Supabase email authentication and
-server-side administrative/payment scaffolding exist, but the marketplace UI
-still uses local demo repositories. No migration has yet been applied or
-validated against a local PostgreSQL instance, and there is no remote project.
+This document describes separate browser-local demonstration records and the
+Supabase-backed marketplace integration. Authentication, provider property and
+listing repositories, student discovery, enquiries, bookings, and payment UI
+are implemented in the frontend. The migrations and RLS have not been applied
+or validated against PostgreSQL, and no remote project is configured.
 
 ## Current folder architecture
 
@@ -15,7 +15,10 @@ src/
     properties.js             Related marketplace demo records and catalogues
     demoProperties.js         Physical demo property identities and ownership
     demoPropertyRepository.js Provider-scoped property lookup
-    demoListingRepository.js  Local repository adapter for the demo records
+    demoListingRepository.js  Local repository adapter for demo records
+    supabaseListingRepository.js Published Supabase listing read adapter
+    supabaseProviderRepository.js Provider-owned property/listing operations
+    supabaseEnquiryRepository.js Enquiry submission and provider inbox
     providerPropertyRepository.js Browser-local provider property CRUD
     propertyImageRepository.js IndexedDB photo-blob storage
   data/supabaseClient.js      Lazy-loaded public Supabase client
@@ -24,7 +27,8 @@ src/
     useListings.js            React loading, errors, request races, and paging
   pages/                      Route-level homepage, detail, and About screens
   services/
-    listingService.js         Demo search/detail/filter-options boundary
+    listingService.js         Explicit demo or Supabase discovery boundary
+    bookingService.js         Supabase booking and Paystack function adapter
     authService.js            Supabase auth and provider onboarding
     adminService.js           Restricted administrator RPC adapter
   utils/
@@ -33,20 +37,20 @@ src/
   App.jsx                     Shared shell and client-side routes
 ```
 
-The service methods are the page-facing data contract. The local adapter keeps
-this MVP self-contained. A later API adapter can implement the same search,
-detail, and filter-option operations and send filters and pagination to a
-server. Components do not import the fixture array.
+The service methods are the page-facing data contract. Demo and Supabase
+adapters remain separate; Supabase errors never fall back to fixture data.
+Components do not import fixture arrays or perform database writes directly.
 
-Milestone 005A adds the initial versioned schema; the later operations
-migration adds enquiries, bookings, payments, reports, reviews, notifications,
-audit events, storage policy, and server-side payment functions. It does not
-replace local demo repositories or prove those policies are correct. See
-`docs/supabase-setup.md` for setup and validation status.
+Milestone 005A adds the initial versioned schema; later migrations add
+operations/payments and the 006.5 marketplace RPCs, listing fields, and
+normalized listing facilities. These migrations do not replace demo records
+or prove the policies are correct. See `docs/supabase-setup.md` for setup and
+validation status.
 
-## Proposed platform folder architecture
+## Future platform modules
 
-Add these modules only as their milestones are implemented:
+Moderation queues, media processing, and other not-yet-built platform
+features can be separated into modules as those milestones are approved:
 
 ```text
 src/
@@ -61,7 +65,7 @@ src/
     mediaService.js           Upload request and media-processing coordination
   data/
     demoListingRepository.js  Development-only fixture adapter
-    supabaseListingRepository.js  Future Supabase adapter
+    supabaseListingRepository.js  Existing published-listing adapter
   hooks/
     useListings.js            Shared React integration with listing use cases
 ```
@@ -79,7 +83,7 @@ frontend hides actions.
 | Role / permission | role id; permission identifiers | Describes student, provider, and administrator capabilities. These frontend definitions are explanatory only; the backend must enforce permissions. |
 | Provider business | `id`, display name, verification status | A business can have multiple authorized user memberships and manage multiple properties. |
 | Property | `id`, `providerBusinessId`, `locationId`, name, property type, verification status | Each property belongs to one provider business; a property can have multiple listings. |
-| Listing | `id`, `propertyId`, `status`, `name`, `institutionIds`, description | A listing belongs to a property and holds the discoverable offering and moderation lifecycle. |
+| Listing | `id`, `propertyId`, `status`, `name`, `accommodationCategory`, institution, description | A listing belongs to a property and holds the discoverable offering and moderation lifecycle. |
 | Room | `id`, `listingId`, `roomTypeId`, occupancy, price amount/currency/period | One listing can have multiple room types and distinct prices. |
 | Room type | `id`, label, occupant count | Shared catalogue referenced by rooms, e.g. “2 in a room”. |
 | Facility / amenity | `id`, label | Shared catalogue; listings reference facilities by id. |
@@ -103,7 +107,7 @@ migration adds eight transaction/trust tables, for 26 relational tables total:
   `provider_business_memberships` (`owner`, `manager`, `editor`).
 - Geography/catalogues: `locations`, `institutions`, `room_types`, `facilities`.
 - Property and discovery: `properties`, `listings`, `listing_institutions`,
-  `listing_rooms`, `property_facilities`.
+  `listing_rooms`, `property_facilities`, `listing_facilities`.
 - Media and availability: `listing_media`, `availability`.
 - Administrative audit: `moderation_actions`, `verification_events`.
 - Student/provider workflows: `enquiries`, `bookings`, `booking_events`.
@@ -117,10 +121,11 @@ Media rows store bucket/path metadata for images or videos, not file bytes.
 Provider verification, property verification, listing publication, and
 availability are stored independently.
 
-Saved-property synchronization is not implemented. A private `listing-media`
-bucket is declared in the later migration, but no image processing pipeline or
-frontend upload flow is connected. Migration policy correctness remains
-unverified until local database tests are run.
+Saved-property synchronization is not implemented. Provider uploads can add
+objects and pending metadata to the private `listing-media` bucket, but a
+trusted image-processing pipeline must mark them ready before student-facing
+signed URLs can be created. Migration policy correctness remains unverified
+until local database tests are run.
 
 ### Example record shapes
 
@@ -450,13 +455,12 @@ contact information is therefore demonstration data only and must not be used
 for real personal or sensitive information. The local layer is not a backend,
 account-level persistence, or a production privacy boundary.
 
-The Supabase schema is not connected to the student/provider marketplace UI
-and does not mirror every local form field. In particular, the SQL rental
-periods (`month`, `semester`, `academic_year`) do not yet match the local
-`monthly`/`other` values; the database enquiry relationship is present but no
-live enquiry repository is wired. Resolve these differences in a reviewed
-migration before integrating the live repositories. Never treat local records
-as SQL-backed or migrate them implicitly.
+Migration `20261103000100_connect_marketplace_workflows.sql` adds the missing
+listing and room-offer fields and accepts the current rental periods. The UI
+maps `monthly` to the database's canonical `month` room value; booking records
+retain the user-facing `monthly` period. The migration is additive and does
+not copy browser-local records into Supabase. Never treat local records as
+SQL-backed or migrate them implicitly.
 
 ## Current integration boundary
 
@@ -470,16 +474,21 @@ as SQL-backed or migrate them implicitly.
   database RPCs for moderation, verification, reports, reviews, and account
   state. The SQL functions enforce roles and record audit events. No
   administrator can be self-assigned from the frontend.
-- **Payment scaffold:** Edge Functions initialize and server-verify Paystack
-  transactions; the browser callback never marks a payment successful by
-  itself. SQL idempotency and booking/payment transition functions are present.
-  There is no booking request UI or payment initiation UI, and the functions
-  have not been tested against a sandbox project.
-- **Not integrated:** The student/provider property, listing, room-offer, and
-  enquiry screens continue to use local demo repositories in demo mode.
-  Supabase mode blocks these marketplace routes rather than silently showing
-  local demo records as production data.
-- **Not launch-ready:** Database migrations, RLS policy tests, real email
-  delivery, image processing, server-backed marketplace repositories, booking
-  history, provider booking queue, sandbox payment flow, SEO/domain setup,
-  monitoring, and deployment remain incomplete or unverified.
+- **Marketplace repositories:** Supabase mode reads published listings and
+  their room/facility/media relationships. Provider property/listing writes,
+  enquiries, and booking requests use database RPCs/repositories. Demo mode
+  remains a separate browser-local implementation.
+- **Enquiries and bookings:** Students can submit enquiries and request room
+  bookings; providers can review inbox/booking records and update permitted
+  statuses. PostgreSQL RLS and RPC transition logic remain untested because no
+  local database or configured project is available.
+- **Payment scaffold:** Edge Functions are connected to the booking UI to
+  initialize and verify Paystack transactions. The browser callback never
+  marks a payment successful by itself. Sandbox credentials/webhook delivery
+  are unavailable, so no successful payment journey has been demonstrated.
+- **Media:** Providers can upload private objects and pending metadata. No
+  trusted processing or moderation pipeline marks images ready, so uploaded
+  photos are not surfaced to students.
+- **Not launch-ready:** migrations, RLS, SQL function signatures, storage
+  policies, email delivery, media processing, sandbox payment behavior,
+  deployment, monitoring, and recovery remain incomplete or unverified.
