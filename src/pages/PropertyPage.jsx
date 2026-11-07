@@ -19,7 +19,7 @@ const pricePeriodLabel = (period) => ({
 
 export default function PropertyPage() {
   const { id } = useParams();
-  const { listing: property, isLoading, error } = useListingById(id);
+  const { listing: property, isLoading, error, retry } = useListingById(id);
   const [activePhoto, setActivePhoto] = useState(null);
   const galleryOpenerRef = useRef(null);
   const closeGallery = useCallback(() => setActivePhoto(null), []);
@@ -34,7 +34,7 @@ export default function PropertyPage() {
   }
 
   if (error) {
-    return <main className="not-found container"><p role="alert">We could not load this listing. Please try again.</p><Link className="button button-dark" to="/">Back to all places</Link></main>;
+    return <main className="not-found container"><p role="alert">We could not load this listing from the accommodation service.</p><button className="button button-dark" type="button" onClick={retry}>Try again</button><Link className="button button-dark" to="/">Back to all places</Link></main>;
   }
 
   if (!property) {

@@ -22,6 +22,7 @@ export function useListingSearch(filters, sortBy) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
   const requestVersion = useRef(0);
   const priceError = validatePriceRange(filters);
 
@@ -62,7 +63,7 @@ export function useListingSearch(filters, sortBy) {
     return () => {
       active = false;
     };
-  }, [filters, priceError, sortBy]);
+  }, [filters, priceError, retryVersion, sortBy]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || isLoadingMore || !results.hasNextPage) {
@@ -99,7 +100,8 @@ export function useListingSearch(filters, sortBy) {
     }
   }, [filters, isLoading, isLoadingMore, results, sortBy]);
 
-  return { ...results, isLoading, isLoadingMore, error, loadMore };
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
+  return { ...results, isLoading, isLoadingMore, error, loadMore, retry };
 }
 
 /** Load discovery filter values independently from the page's visual controls. */
@@ -114,9 +116,11 @@ export function useListingFilterOptions() {
     facilities: [],
   });
   const [error, setError] = useState(null);
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
+    setError(null);
 
     getListingFilterOptions()
       .then((nextOptions) => {
@@ -129,9 +133,10 @@ export function useListingFilterOptions() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [retryVersion]);
 
-  return { options, error };
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
+  return { options, error, retry };
 }
 
 /** Load an individual listing while the detail route is active. */
@@ -142,6 +147,7 @@ export function useListingById(id) {
     isLoading: true,
     error: null,
   });
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -159,11 +165,12 @@ export function useListingById(id) {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, retryVersion]);
 
+  const retry = useCallback(() => setRetryVersion((version) => version + 1), []);
   if (request.id !== id) {
-    return { listing: null, isLoading: true, error: null };
+    return { listing: null, isLoading: true, error: null, retry };
   }
 
-  return request;
+  return { ...request, retry };
 }

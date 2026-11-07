@@ -1,6 +1,7 @@
 import { ArrowUpRight, Instagram, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { contactDetails } from "../config";
+import { isExplicitSupabaseMode } from "../data/supabaseClient";
 
 export default function Footer() {
   return (
@@ -25,7 +26,11 @@ export default function Footer() {
         <div className="footer-bottom">
           <span>© {new Date().getFullYear()} Sovereign Stay</span>
           <span>Made for student life in Ghana <span className="ghana-dot" aria-label="Ghana flag colors">●</span></span>
-          <span className="demo-note">Demo experience · Listings are examples</span>
+          <span className="demo-note">
+            {isExplicitSupabaseMode
+              ? "Provider-submitted information · Confirm details directly"
+              : "Demo experience · Listings are examples"}
+          </span>
         </div>
       </div>
     </footer>

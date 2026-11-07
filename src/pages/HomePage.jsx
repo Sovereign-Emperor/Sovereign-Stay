@@ -32,8 +32,9 @@ export default function HomePage() {
     isLoadingMore,
     error: listingsError,
     loadMore,
+    retry: retryListings,
   } = useListingSearch(filters, sort);
-  const { options, error: filterOptionsError } = useListingFilterOptions();
+  const { options, error: filterOptionsError, retry: retryFilterOptions } = useListingFilterOptions();
 
   const setFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
   const hasFilters = Object.values(filters).some(Boolean);
@@ -115,11 +116,15 @@ export default function HomePage() {
 
           {(listingsError || filterOptionsError) && (
             <p className="filter-error" role="alert">
-              We could not load some accommodation data. Please try again in a moment.
+              {isExplicitSupabaseMode
+                ? "Published accommodation data could not be loaded from Supabase."
+                : "We could not load the demonstration accommodation data."}
+              {" "}
+              <button type="button" onClick={() => { retryListings(); retryFilterOptions(); }}>Try again</button>
             </p>
           )}
           {priceError ? null : isLoading && filteredProperties.length === 0 ? (
-            <p role="status">Loading demonstration listings…</p>
+            <p role="status">{isExplicitSupabaseMode ? "Loading published accommodation…" : "Loading demonstration listings…"}</p>
           ) : listingsError ? null : filteredProperties.length > 0 ? (
             <div className="property-grid">
               {filteredProperties.map((property) => <PropertyCard key={property.id} property={property} />)}

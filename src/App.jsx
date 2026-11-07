@@ -65,16 +65,18 @@ function AppRoutes() {
     return <main className="auth-page"><section className="auth-card" role="alert"><h1>Administrator console unavailable</h1><p>Admin tools require an explicitly configured Supabase data mode and a server-authorized administrator role.</p></section></main>;
   }
 
-  if (!explicitDemoMode && !isAuthRoute && !isProviderOnboardingRoute && !isAdminRoute && !isPaymentCompleteRoute) {
+  const configuredSupabaseMode = isExplicitSupabaseMode && supabaseConfigured;
+  if (!explicitDemoMode && !configuredSupabaseMode && !isAuthRoute && !isProviderOnboardingRoute && !isAdminRoute && !isPaymentCompleteRoute) {
     return (
       <main className="auth-page">
         <section className="auth-card" role="alert">
           <p className="provider-eyebrow">PRODUCTION DATA SAFETY</p>
           <h1>Marketplace backend is not ready</h1>
           <p>
-            This deployment will not fall back to browser demo listings. The Supabase
-            repositories, production data policies, and project configuration must
-            be completed before marketplace routes can be enabled.
+            This deployment will not fall back to browser demo listings. Configure
+            Supabase mode and public project settings, then apply and validate the
+            database migrations and access policies before using live marketplace
+            data.
           </p>
           {!supabaseConfigured && <p>Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for authentication.</p>}
           <Link className="provider-outline-button" to="/auth/login">Go to sign in <ArrowRight size={16} /></Link>
