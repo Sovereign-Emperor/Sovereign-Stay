@@ -2,9 +2,9 @@
 
 Supabase authentication, database repositories, provider/student workflow
 screens, and Edge Functions are present. Supabase mode selects those live
-adapters and never falls back to browser-local demo records. No project is
-linked and no migration, RLS policy, storage rule, or Edge Function has been
-deployed or verified in this environment.
+adapters and never falls back to browser-local demo records. This setup guide
+does not attest to any project's deployed migrations, RLS policies, storage
+rules, or Edge Function state.
 
 ## Local database validation
 
@@ -94,10 +94,10 @@ VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
 Use the Supabase publishable/anon key only. It is browser-visible; RLS and
 database authorization are required. Supabase mode uses the Supabase listing,
 provider, enquiry, and booking adapters and does not fall back to demo data.
-The new migration must be applied and the repositories validated against it
-before the routes can work. Authentication requires email provider
-configuration and email delivery in the Supabase dashboard. Configure the
-allowed redirect URLs for `/auth/callback` and `/auth/reset`.
+Migrations 001–006 must be applied in order and the repositories validated
+against that schema before the routes can work. Authentication requires email
+provider configuration and email delivery in the Supabase dashboard.
+Configure the allowed redirect URLs for `/auth/callback` and `/auth/reset`.
 
 Vite variables are embedded in the frontend. Never put a database password,
 service-role key, Paystack secret, email-provider key, or other private

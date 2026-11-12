@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "../data/supabaseClient";
+import { getSupabaseClient, paymentCheckoutEnabled } from "../data/supabaseClient";
 
 async function requireClient() {
   const client = await getSupabaseClient();
@@ -34,6 +34,9 @@ export async function cancelBooking(bookingId) {
 }
 
 export async function startBookingPayment(bookingId) {
+  if (!paymentCheckoutEnabled) {
+    throw new Error("Payment checkout is disabled for this deployment.");
+  }
   const client = await requireClient();
   const { data, error } = await client.functions.invoke("paystack-initiate", {
     body: { bookingId, idempotencyKey: crypto.randomUUID() },

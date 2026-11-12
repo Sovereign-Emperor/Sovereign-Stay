@@ -73,6 +73,7 @@ src/
 docs/
   data-model.md       Local data model, Supabase schema, and boundaries
   supabase-setup.md   Local Supabase setup, migrations, and security notes
+  deployment.md       Deployment prerequisites, security headers, and smoke tests
 supabase/
   config.toml         Local Supabase CLI configuration
   functions/          Sandbox Paystack server-side function scaffolding
@@ -88,6 +89,8 @@ Read [docs/data-model.md](./docs/data-model.md) for entity relationships,
 listing lifecycle, local demo storage, and the planned backend architecture.
 Read [docs/supabase-setup.md](./docs/supabase-setup.md) for local database
 setup, Edge Function secrets, migration commands, and security warnings.
+Read [docs/deployment.md](./docs/deployment.md) for the deployment sequence,
+server-only configuration, security headers, and remaining external tasks.
 
 ## What works in this MVP
 

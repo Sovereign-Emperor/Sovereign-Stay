@@ -1,9 +1,9 @@
-import { getSupabaseClient } from "../data/supabaseClient";
+import { getSupabaseClient, supabaseConfigError } from "../data/supabaseClient";
 
 async function requireSupabase() {
   const supabase = await getSupabaseClient();
   if (!supabase) {
-    throw new Error("Authentication is not configured. Add the public Supabase URL and key.");
+    throw new Error(supabaseConfigError || "Supabase authentication is not configured.");
   }
   return supabase;
 }

@@ -1,7 +1,11 @@
 import { useRef, useState } from "react";
 import { Send } from "lucide-react";
-import { submitListingEnquiry, validateEnquiry } from "../services/enquiryService";
-import { submitAuthenticatedListingEnquiry } from "../services/enquiryService";
+import { Link, useLocation } from "react-router-dom";
+import {
+  submitAuthenticatedListingEnquiry,
+  submitListingEnquiry,
+  validateEnquiry,
+} from "../services/enquiryService";
 import { useOptionalAuth } from "../auth/AuthProvider";
 import { isExplicitSupabaseMode } from "../data/supabaseClient";
 
@@ -14,6 +18,7 @@ const initialValues = {
 };
 
 export default function ListingEnquiryForm({ listingId, listingName }) {
+  const location = useLocation();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -83,7 +88,7 @@ export default function ListingEnquiryForm({ listingId, listingName }) {
     <form className="student-enquiry-form" onSubmit={handleSubmit} noValidate>
       <h3>Ask about this listing</h3>
       <p>{isExplicitSupabaseMode ? "Enquiries are delivered to the provider inbox and stored with this listing." : "Enquiries are saved only in this browser demo; they are not sent in real time."}</p>
-      {isExplicitSupabaseMode && !auth?.user && <p role="note"><a href={`/auth/login?returnTo=${encodeURIComponent(window.location.pathname)}`}>Sign in</a> to send an enquiry. Your message is linked to your verified student account.</p>}
+      {isExplicitSupabaseMode && !auth?.user && <p role="note"><Link to="/auth/login" state={{ from: location.pathname }}>Sign in</Link> to send an enquiry. Your message is linked to your verified student account.</p>}
       {isExplicitSupabaseMode && auth?.user && !auth.roles.includes("student") && <p role="note">A student account is required to send an enquiry.</p>}
       {success && <p className="student-enquiry-success" role="status">{success}</p>}
       {error && <p className="student-enquiry-error-banner" role="alert">{error}</p>}

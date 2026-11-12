@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useOptionalAuth } from "../auth/AuthProvider";
-import { isExplicitSupabaseMode } from "../data/supabaseClient";
+import { isExplicitSupabaseMode, paymentCheckoutEnabled } from "../data/supabaseClient";
 import { cancelBooking, getStudentBookings, requestBooking, startBookingPayment } from "../services/bookingService";
 import { formatPrice } from "../utils/format";
 
@@ -97,7 +97,9 @@ export default function BookingRequestPanel({ listing }) {
           <strong>{booking.listings?.name ?? listing.name} · {booking.listing_rooms?.label ?? "Room"}</strong>
           <span>{booking.status} · move-in {booking.move_in_date}</span>
           {booking.payments?.map((payment) => <small key={payment.id}>Payment: {payment.status} · {payment.currency} {(payment.amount_pesewas / 100).toFixed(2)}</small>)}
-          {booking.status === "accepted" && <button type="button" disabled={busy} onClick={() => pay(booking.id)}>Pay securely with Paystack</button>}
+          {booking.status === "accepted" && paymentCheckoutEnabled
+            ? <button type="button" disabled={busy} onClick={() => pay(booking.id)}>Pay securely with Paystack</button>
+            : booking.status === "accepted" && <p role="note">Payment checkout is disabled for this deployment.</p>}
           {["requested", "accepted"].includes(booking.status) && <button type="button" disabled={busy} onClick={() => cancel(booking.id)}>Cancel request</button>}
         </article>
       ))}</div>}

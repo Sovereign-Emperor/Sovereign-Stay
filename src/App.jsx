@@ -20,7 +20,12 @@ import ProviderEnquiryDetailPage from "./pages/provider/ProviderEnquiryDetailPag
 import AuthPage from "./pages/AuthPage";
 import ProviderOnboardingPage from "./pages/ProviderOnboardingPage";
 import RequireAuth from "./components/RequireAuth";
-import { isExplicitDemoMode, isExplicitSupabaseMode, supabaseConfigured } from "./data/supabaseClient";
+import {
+  isExplicitDemoMode,
+  isExplicitSupabaseMode,
+  supabaseConfigError,
+  supabaseConfigured,
+} from "./data/supabaseClient";
 import { AuthProvider } from "./auth/AuthProvider";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PaymentCompletePage from "./pages/PaymentCompletePage";
@@ -78,7 +83,7 @@ function AppRoutes() {
             database migrations and access policies before using live marketplace
             data.
           </p>
-          {!supabaseConfigured && <p>Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for authentication.</p>}
+          {!supabaseConfigured && <p role="status">{supabaseConfigError}</p>}
           <Link className="provider-outline-button" to="/auth/login">Go to sign in <ArrowRight size={16} /></Link>
         </section>
       </main>

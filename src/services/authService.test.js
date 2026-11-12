@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ supabase: null }));
 
 vi.mock("../data/supabaseClient", () => ({
+  supabaseConfigError: "Supabase URL and public anon/publishable key are not configured.",
   getSupabaseClient() {
     return Promise.resolve(mocks.supabase);
   },

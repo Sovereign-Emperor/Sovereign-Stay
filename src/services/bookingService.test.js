@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ supabase: null }));
+const mocks = vi.hoisted(() => ({ supabase: null, paymentEnabled: true }));
 
 vi.mock("../data/supabaseClient", () => ({
   getSupabaseClient: () => Promise.resolve(mocks.supabase),
+  get paymentCheckoutEnabled() {
+    return mocks.paymentEnabled;
+  },
 }));
 
 import {
@@ -11,6 +14,7 @@ import {
   getProviderBookings,
   getStudentBookings,
   requestBooking,
+  startBookingPayment,
   updateBookingStatus,
 } from "./bookingService";
 
@@ -23,6 +27,7 @@ function createClient() {
   return {
     rpc: vi.fn().mockResolvedValue({ data: "booking-1", error: null }),
     from: vi.fn(() => query),
+    functions: { invoke: vi.fn() },
     query,
   };
 }
@@ -30,6 +35,7 @@ function createClient() {
 describe("Supabase booking service", () => {
   beforeEach(() => {
     mocks.supabase = createClient();
+    mocks.paymentEnabled = true;
   });
 
   it("requests a booking using a database-derived room price and a reusable idempotency key", async () => {
@@ -65,5 +71,13 @@ describe("Supabase booking service", () => {
   it("surfaces missing backend configuration instead of falling back to demo data", async () => {
     mocks.supabase = null;
     await expect(getStudentBookings()).rejects.toThrow(/configured Supabase project/);
+  });
+
+  it("does not call the payment function when checkout is disabled", async () => {
+    mocks.paymentEnabled = false;
+    await expect(startBookingPayment("booking-1")).rejects.toThrow(
+      "Payment checkout is disabled for this deployment.",
+    );
+    expect(mocks.supabase.functions.invoke).not.toHaveBeenCalled();
   });
 });
