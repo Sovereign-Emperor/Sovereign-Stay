@@ -136,6 +136,17 @@ default 100) controls the initial charge percentage. The code paths and Edge Fun
 local or remote Supabase project, so this is not evidence that backend,
 payment, or RLS behavior works in deployment.
 
+The additive `20261104000100_security_and_workflow_hardening.sql` migration
+seeds required catalogues, backfills only users without an existing role,
+restricts exact property-address reads, aligns direct student inserts with
+the student role, and preserves booked room records during listing edits.
+Paystack webhook processing verifies the raw-body HMAC-SHA512 signature and
+matches verified transaction details to a server-owned payment; clients cannot
+change payment state. Exact addresses are exposed only through an authorization
+RPC to provider members/admins or students with an accepted-or-later booking.
+These changes still require local PostgreSQL/RLS tests and sandbox verification
+before deployment; they do not establish remote database security.
+
 **Not production-ready:** no Supabase project is linked, migrations and RLS
 have not been run, and no email delivery, Paystack sandbox webhook, monitoring,
 hosting target, or domain have been configured. Do not use live payments.

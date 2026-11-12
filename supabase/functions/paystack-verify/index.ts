@@ -1,6 +1,7 @@
 import {
   authenticateUser,
   checkBrowserOrigin,
+  matchesPaystackPayment,
   response,
   verifyPaystackReference,
 } from "../_shared/paystack.ts";
@@ -47,8 +48,12 @@ Deno.serve(async (request) => {
       return response({ error: "Gateway reference did not match the booking payment." }, 409, origin);
     }
     if (transaction.status === "success") {
-      if (transaction.currency !== payment.currency ||
-        transaction.amount !== Number(payment.amount_pesewas)) {
+      if (!matchesPaystackPayment(
+        transaction,
+        reference,
+        Number(payment.amount_pesewas),
+        payment.currency,
+      )) {
         console.error("paystack.verification_mismatch", { paymentId: payment.id });
         return response({ error: "Verified transaction amount or currency did not match the booking." }, 409, origin);
       }
@@ -65,8 +70,19 @@ Deno.serve(async (request) => {
       return response({ status: "succeeded", bookingId, reference }, 200, origin);
     }
     if (transaction.status === "failed") {
-      const { error: failureError } = await serviceClient.rpc("mark_paystack_payment_failed", {
+      if (!matchesPaystackPayment(
+        transaction,
+        reference,
+        Number(payment.amount_pesewas),
+        payment.currency,
+      )) {
+        console.error("paystack.verification_mismatch", { paymentId: payment.id });
+        return response({ error: "Verified transaction amount or currency did not match the booking." }, 409, origin);
+      }
+      const { error: failureError } = await serviceClient.rpc("mark_verified_paystack_payment_failed", {
         p_reference: reference,
+        p_amount_pesewas: transaction.amount,
+        p_currency: transaction.currency,
         p_gateway_transaction_id: String(transaction.id),
         p_failure_reason: "Paystack reported a failed transaction.",
       });

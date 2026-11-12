@@ -183,7 +183,7 @@ export function ProviderBackendListingForm() {
           depositRequirements: listing.deposit_requirements ?? "", contactPreference: listing.contact_preference,
           viewingPreference: listing.viewing_preference,
         });
-        setOffers((listing.listing_rooms ?? []).map((room) => ({
+        setOffers((listing.listing_rooms ?? []).filter((room) => room.is_active !== false).map((room) => ({
           id: room.id, roomType: room.label || one(room.room_types)?.display_name || "",
           description: room.description, occupancy: String(room.occupancy),
           quantity: String(room.available_quantity ?? ""), price: String(room.price_amount),

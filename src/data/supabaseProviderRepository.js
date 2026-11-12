@@ -54,7 +54,7 @@ export async function getProviderWorkspaceRecords() {
 
   const [propertyResult, enquiryResult, bookingResult] = await Promise.all([
     client.from("properties")
-      .select("id, provider_business_id, location_id, name, property_type, description, address, verification_status, created_at, updated_at, locations(label, area, city, region)")
+      .select("id, provider_business_id, location_id, name, property_type, description, verification_status, created_at, updated_at, locations(label, area, city, region)")
       .in("provider_business_id", businessIds)
       .order("updated_at", { ascending: false }),
     client.from("enquiries")
@@ -67,7 +67,22 @@ export async function getProviderWorkspaceRecords() {
   if (propertyResult.error) throw propertyResult.error;
   if (enquiryResult.error) throw enquiryResult.error;
   if (bookingResult.error) throw bookingResult.error;
-  const properties = propertyResult.data ?? [];
+  const propertyRecords = propertyResult.data ?? [];
+  let properties = propertyRecords;
+  if (propertyRecords.length) {
+    const { data: addressData, error: addressError } = await client.rpc(
+      "get_authorized_property_addresses",
+      { p_property_ids: propertyRecords.map(({ id }) => id) },
+    );
+    if (addressError) throw addressError;
+    const addressesByPropertyId = new Map(
+      (addressData ?? []).map(({ property_id: id, exact_address: address }) => [id, address]),
+    );
+    properties = propertyRecords.map((property) => ({
+      ...property,
+      address: addressesByPropertyId.get(property.id) ?? "",
+    }));
+  }
   const propertyIds = properties.map(({ id }) => id);
   let listings = [];
   if (propertyIds.length) {
@@ -105,6 +120,7 @@ export async function saveProviderProperty(values, propertyId = null) {
 export async function saveProviderListing(listingId, values, offers, publishing) {
   const client = await getClient();
   const roomRecords = offers.map((offer) => ({
+    id: offer.id ?? null,
     roomType: offer.roomType,
     description: offer.description,
     occupancy: Number(offer.occupancy),

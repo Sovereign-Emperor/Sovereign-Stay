@@ -1,6 +1,7 @@
 import {
   authenticateUser,
   checkBrowserOrigin,
+  isValidPaystackReference,
   requireEnvironment,
   response,
 } from "../_shared/paystack.ts";
@@ -40,8 +41,9 @@ Deno.serve(async (request) => {
       console.error("paystack.payment_attempt_rejected", { code: paymentError?.code });
       return response({ error: "Payment could not be started for this booking." }, 409, origin);
     }
-    if (payment.currency !== "GHS" || !Number.isSafeInteger(payment.amount_pesewas) || payment.amount_pesewas <= 0) {
-      return response({ error: "The booking has an invalid payment amount." }, 409, origin);
+    if (payment.currency !== "GHS" || !Number.isSafeInteger(payment.amount_pesewas) ||
+      payment.amount_pesewas <= 0 || !isValidPaystackReference(payment.reference)) {
+      return response({ error: "The booking returned invalid payment details." }, 409, origin);
     }
     if (payment.status === "pending" && payment.authorization_url) {
       return response({

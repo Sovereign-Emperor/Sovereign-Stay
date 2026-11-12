@@ -42,10 +42,13 @@ adapters remain separate; Supabase errors never fall back to fixture data.
 Components do not import fixture arrays or perform database writes directly.
 
 Milestone 005A adds the initial versioned schema; later migrations add
-operations/payments and the 006.5 marketplace RPCs, listing fields, and
-normalized listing facilities. These migrations do not replace demo records
-or prove the policies are correct. See `docs/supabase-setup.md` for setup and
-validation status.
+operations/payments, marketplace RPCs, listing fields, and normalized listing
+facilities. Migration `20261104000100_security_and_workflow_hardening.sql`
+provisions required catalogues, backfills only unclassified users, restricts
+exact-address reads, tightens student insert policies, hardens payment/audit
+RPCs, and retires booked room offers without deleting them. These migrations
+do not replace demo records or prove remote policies are correct. See
+`docs/supabase-setup.md` for setup and validation status.
 
 ## Future platform modules
 
@@ -462,6 +465,13 @@ retain the user-facing `monthly` period. The migration is additive and does
 not copy browser-local records into Supabase. Never treat local records as
 SQL-backed or migrate them implicitly.
 
+Migration `20261104000100_security_and_workflow_hardening.sql` keeps exact
+street addresses out of direct authenticated column reads. Active provider
+members and administrators can retrieve them through a restricted RPC;
+students can do so only after a booking is accepted, paid, or completed.
+Room rows referenced by bookings retain their IDs and historical terms when
+removed from a draft; they become inactive instead of being deleted.
+
 ## Current integration boundary
 
 - **Authentication scaffold:** Supabase email registration, sign-in, email-link
@@ -483,9 +493,13 @@ SQL-backed or migrate them implicitly.
   statuses. PostgreSQL RLS and RPC transition logic remain untested because no
   local database or configured project is available.
 - **Payment scaffold:** Edge Functions are connected to the booking UI to
-  initialize and verify Paystack transactions. The browser callback never
-  marks a payment successful by itself. Sandbox credentials/webhook delivery
-  are unavailable, so no successful payment journey has been demonstrated.
+  initialize and verify Paystack transactions. Webhooks verify the official
+  HMAC-SHA512 signature, re-fetch the transaction, and compare its amount,
+  currency, reference, and booking ownership before a service-only database
+  transition. Duplicate verified events are idempotent. The browser callback
+  never marks a payment successful by itself. Sandbox credentials/webhook
+  delivery are unavailable, so no successful payment journey has been
+  demonstrated.
 - **Media:** Providers can upload private objects and pending metadata. No
   trusted processing or moderation pipeline marks images ready, so uploaded
   photos are not surfaced to students.

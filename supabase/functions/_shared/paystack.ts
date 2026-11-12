@@ -1,4 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.118.0";
+import {
+  isValidPaystackReference,
+  matchesPaystackPayment,
+  verifyPaystackSignature,
+} from "./paystack-validation.ts";
+
+export { isValidPaystackReference, matchesPaystackPayment };
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -55,6 +62,9 @@ export async function authenticateUser(request: Request) {
 }
 
 export async function verifyPaystackReference(reference: string) {
+  if (!isValidPaystackReference(reference)) {
+    throw new Error("A valid payment reference is required.");
+  }
   const [secret] = requireEnvironment("PAYSTACK_SECRET_KEY");
   const result = await fetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
@@ -62,35 +72,25 @@ export async function verifyPaystackReference(reference: string) {
   );
   if (!result.ok) throw new Error("Paystack could not verify the transaction.");
   const body = await result.json();
-  if (!body.status || !body.data) {
+  const data = body?.data;
+  if (body?.status !== true || !data ||
+    !Number.isSafeInteger(data.id) || data.id <= 0 ||
+    typeof data.reference !== "string" ||
+    typeof data.status !== "string" ||
+    !Number.isSafeInteger(data.amount) || data.amount <= 0 ||
+    typeof data.currency !== "string") {
     throw new Error("Paystack returned an invalid verification response.");
   }
-  return body.data as {
-    id: number;
-    reference: string;
-    status: string;
-    amount: number;
-    currency: string;
+  return {
+    id: data.id,
+    reference: data.reference,
+    status: data.status,
+    amount: data.amount,
+    currency: data.currency,
   };
 }
 
 export async function verifyWebhookSignature(rawBody: string, signature: string) {
   const [secret] = requireEnvironment("PAYSTACK_SECRET_KEY");
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-512" },
-    false,
-    ["sign"],
-  );
-  const digest = new Uint8Array(
-    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody)),
-  );
-  const expected = [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  if (signature.length !== expected.length) return false;
-  let mismatch = 0;
-  for (let index = 0; index < expected.length; index += 1) {
-    mismatch |= signature.charCodeAt(index) ^ expected.charCodeAt(index);
-  }
-  return mismatch === 0;
+  return verifyPaystackSignature(rawBody, signature, secret);
 }

@@ -15,6 +15,7 @@ Docker Engine). From the repository root:
 npx supabase start
 npx supabase db reset
 npx supabase db lint --local
+npx supabase test db --local
 npm test
 ```
 
@@ -34,11 +35,33 @@ The schema history currently contains:
 - `20261103000100_connect_marketplace_workflows.sql` — listing/room fields,
   normalized listing facilities, provider property/listing RPCs, authenticated
   enquiry and booking request RPCs, and pre-publication media metadata rules.
+- `20261104000100_security_and_workflow_hardening.sql` — role/catalogue
+  provisioning and safe unassigned-user backfill, student-role insert policies,
+  authorized exact-address reads, server-only audit/payment RPCs, and room-offer
+  retirement that preserves booking references.
 
 Do not edit applied migrations. Create a new migration for later changes and
 review it locally before any remote push. This repository has no production
 project reference; never run `db push` against production without explicit
 approval, backup, reviewed diff, and tested RLS behavior.
+
+Before deploying migration 004 to a database that may already contain payment
+rows, check that no Paystack transaction ID is attached to multiple payments;
+the new unique index intentionally fails rather than silently choosing a row:
+
+```sql
+select gateway_transaction_id, count(*)
+from public.payments
+where gateway_transaction_id is not null
+group by gateway_transaction_id
+having count(*) > 1;
+```
+
+Deploy migration 004 and the three updated payment Edge Functions together in a
+maintenance window with payment initiation disabled. Migration 004 revokes the
+older payment-failure RPC and replaces it with one that requires verified
+amount and currency. Re-enable only sandbox payments after the new functions
+and database tests pass. Do not enable live payments as part of this change.
 
 ## Frontend mode and public configuration
 
@@ -82,7 +105,31 @@ validated against a configured Supabase project or Paystack sandbox:
   a booking paid through the service-role database function after amount,
   currency, reference, and booking ownership checks.
 - `paystack-webhook` validates Paystack's HMAC signature, re-fetches the
-  transaction from Paystack, then applies the idempotent database transition.
+  transaction from Paystack, matches its reference, amount, and currency to the
+  payment and booking owner, then applies an idempotent database transition.
+  The HMAC-SHA512 calculation and transaction comparisons have focused tests
+  in `supabase/functions/_shared/paystack-validation.test.ts`.
+
+The browser cannot write payment records or call payment-state RPCs. The
+`service_role` can call the verification RPCs only; never expose its key.
+Duplicate successful or failed webhook deliveries are idempotent, and a
+gateway transaction ID cannot be applied to multiple payments.
+
+Property area/location summaries remain public. Exact street addresses are
+returned only to active provider-business members, administrators, or students
+with an accepted, paid, or completed booking. Provider address reads use the
+authorized RPC rather than direct column access. New enquiry, booking, and
+report inserts require an active student role.
+
+When editing a listing, room offers referenced by booking history are never
+deleted. Their historical terms cannot be edited; omitted offers are marked
+inactive, and providers must add a new offer to change the terms of a booked
+room. Availability records and booking foreign keys are preserved.
+
+Run the pgTAP workflow tests against a local Supabase database with
+`npx supabase test db --local`. This command must not be changed to `--linked`
+or a remote database URL for this project. The test transaction rolls back its
+temporary users, properties, bookings, and payments.
 
 The student UI can request a room, view booking/payment status, and initialize
 checkout after provider acceptance. The provider UI can review and decide
@@ -145,13 +192,13 @@ remain unimplemented.
 ## Current validation and launch blockers
 
 - No Supabase project is linked and no database migration has been applied.
-- Docker is unavailable in the current development environment, so local
-  PostgreSQL parsing, migration execution, and RLS tests cannot be claimed.
 - Supabase Auth email delivery, Paystack sandbox credentials/webhook, and
   production secrets are not configured.
-- The new 006.5 migration has not been applied or parsed by a live/local
-  PostgreSQL server. Repository queries, provider RPC writes, enquiry RLS,
-  booking concurrency, and Storage permissions remain unverified.
+- The Docker CLI is unavailable here and the local database port is not
+  running, so the pgTAP suite and PostgreSQL migration lint could not execute.
+- The additive hardening migration and local pgTAP suite have not been applied
+  or validated against a PostgreSQL server in this environment. A passing
+  mocked frontend test or SQL source inspection is not an RLS integration test.
 - Paystack sandbox credentials, webhook delivery, email provider, project
   secrets, and real student/provider accounts are unavailable, so no complete
   transaction or browser journey can be claimed.
