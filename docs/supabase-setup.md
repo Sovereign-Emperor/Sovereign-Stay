@@ -41,6 +41,8 @@ The schema history currently contains:
   retirement that preserves booking references.
 - `20261105000100_security_validation_completion.sql` — public RLS filters out
   retired room offers while allowing their managing providers to retain access.
+- `20261106000100_review_authorization_hardening.sql` — requires active student
+  accounts to own the completed booking for a new review.
 
 Do not edit applied migrations. Create a new migration for later changes and
 review it locally before any remote push. This repository has no production

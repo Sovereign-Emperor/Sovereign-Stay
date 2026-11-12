@@ -271,6 +271,18 @@ select ok(
   ),
   'direct report inserts require the student role'
 );
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'reviews'
+      and policyname = 'Active students review completed bookings once'
+      and position('is_active_user' in with_check) > 0
+      and position('has_role' in with_check) > 0
+      and position('student' in with_check) > 0
+  ),
+  'review inserts require an active student role'
+);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -654,6 +666,7 @@ select is(
 select set_config(
   'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
 );
+select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 select public.provider_update_booking_status(
   current_setting('test.booking_id')::uuid, 'accepted'
@@ -663,6 +676,7 @@ reset role;
 select set_config(
   'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true
 );
+select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 select set_config(
   'test.accepted_addresses',
@@ -777,6 +791,64 @@ select ok(
     ))
   ) > 0,
   'duplicate verified failure delivery is idempotent for the same transaction'
+);
+
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
+);
+set local role authenticated;
+select public.provider_update_booking_status(
+  current_setting('test.booking_id')::uuid, 'completed'
+);
+reset role;
+
+update public.profiles
+set account_status = 'suspended'
+where id = '10000000-0000-4000-8000-000000000002';
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true
+);
+set local role authenticated;
+select throws_ok(
+  format(
+    'insert into public.reviews (booking_id, listing_id, student_user_id, rating, body) values (%L::uuid, %L::uuid, %L::uuid, %s, %L)',
+    current_setting('test.booking_id'),
+    current_setting('test.listing_id'),
+    '10000000-0000-4000-8000-000000000002',
+    5,
+    'A review from a suspended account must be rejected.'
+  ),
+  '42501',
+  null,
+  'suspended students cannot submit reviews for completed bookings'
+);
+reset role;
+update public.profiles
+set account_status = 'active'
+where id = '10000000-0000-4000-8000-000000000002';
+
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true
+);
+set local role authenticated;
+insert into public.reviews (
+  booking_id, listing_id, student_user_id, rating, body
+) values (
+  current_setting('test.booking_id')::uuid,
+  current_setting('test.listing_id')::uuid,
+  '10000000-0000-4000-8000-000000000002',
+  5,
+  'An active student can submit a review after completion.'
+);
+reset role;
+select ok(
+  exists (
+    select 1 from public.reviews
+    where booking_id = current_setting('test.booking_id')::uuid
+      and student_user_id = '10000000-0000-4000-8000-000000000002'
+      and status = 'pending'
+  ),
+  'active students retain the ability to submit reviews for completed bookings'
 );
 
 select * from finish();

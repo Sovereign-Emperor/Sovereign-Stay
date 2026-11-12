@@ -155,6 +155,9 @@ and unrecognized webhook states are retried rather than acknowledged as final.
 Payment initiation is fail-closed unless the server-only
 `PAYMENT_ENABLED=true` setting is explicitly configured.
 
+The additive `20261106000100_review_authorization_hardening.sql` migration
+limits review submissions to active student accounts with a completed booking.
+
 **Not production-ready:** no Supabase project is linked, migrations and RLS
 have not been run, and no email delivery, Paystack sandbox webhook, monitoring,
 hosting target, or domain have been configured. Do not use live payments.
