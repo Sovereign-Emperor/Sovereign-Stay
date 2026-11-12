@@ -147,6 +147,14 @@ RPC to provider members/admins or students with an accepted-or-later booking.
 These changes still require local PostgreSQL/RLS tests and sandbox verification
 before deployment; they do not establish remote database security.
 
+The additive `20261105000100_security_validation_completion.sql` migration
+keeps retired room offers available to their managing business for historical
+context while hiding them from public listing queries. Paystack `abandoned`
+transactions are treated as terminal failures; pending states remain pending,
+and unrecognized webhook states are retried rather than acknowledged as final.
+Payment initiation is fail-closed unless the server-only
+`PAYMENT_ENABLED=true` setting is explicitly configured.
+
 **Not production-ready:** no Supabase project is linked, migrations and RLS
 have not been run, and no email delivery, Paystack sandbox webhook, monitoring,
 hosting target, or domain have been configured. Do not use live payments.

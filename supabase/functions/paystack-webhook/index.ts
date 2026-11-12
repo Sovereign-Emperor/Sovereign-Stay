@@ -1,4 +1,5 @@
 import {
+  classifyPaystackTransactionStatus,
   isValidPaystackReference,
   matchesPaystackPayment,
   requireEnvironment,
@@ -8,13 +9,41 @@ import {
 } from "../_shared/paystack.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.118.0";
 
+const MAX_WEBHOOK_BODY_BYTES = 1_000_000;
+
+async function readBoundedBody(request: Request) {
+  const reader = request.body?.getReader();
+  if (!reader) return new Uint8Array();
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_WEBHOOK_BODY_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") return response({ error: "Method not allowed." }, 405);
 
   try {
     const [url, serviceRoleKey] = requireEnvironment("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY");
-    const rawBody = await request.text();
-    if (rawBody.length > 1_000_000) {
+    const rawBody = await readBoundedBody(request);
+    if (rawBody === null) {
       return response({ error: "Webhook payload is too large." }, 413);
     }
     const signature = request.headers.get("x-paystack-signature") ?? "";
@@ -24,7 +53,7 @@ Deno.serve(async (request) => {
 
     let event;
     try {
-      event = JSON.parse(rawBody);
+      event = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(rawBody));
     } catch {
       return response({ error: "Webhook payload must be valid JSON." }, 400);
     }
@@ -70,28 +99,35 @@ Deno.serve(async (request) => {
       console.error("paystack.webhook_booking_mismatch", { paymentId: payment.id });
       return response({ error: "Payment ownership could not be verified." }, 503);
     }
-    if (payment.status === "succeeded" && transaction.status === "failed") {
+    const outcome = classifyPaystackTransactionStatus(transaction.status);
+    if (payment.status === "succeeded" && outcome === "failed") {
       console.error("paystack.webhook_stale_failure_ignored", { paymentId: payment.id });
       return response({ received: true, ignored: true });
     }
 
-    const result = transaction.status === "success"
+    const result = outcome === "succeeded"
       ? await serviceClient.rpc("apply_verified_paystack_payment", {
         p_reference: transaction.reference,
         p_amount_pesewas: transaction.amount,
         p_currency: transaction.currency,
         p_gateway_transaction_id: String(transaction.id),
       })
-      : transaction.status === "failed"
+      : outcome === "failed"
         ? await serviceClient.rpc("mark_verified_paystack_payment_failed", {
           p_reference: transaction.reference,
           p_amount_pesewas: transaction.amount,
           p_currency: transaction.currency,
           p_gateway_transaction_id: String(transaction.id),
-          p_failure_reason: "Paystack reported a failed transaction.",
+          p_failure_reason: transaction.status === "abandoned"
+            ? "Paystack reported an abandoned transaction."
+            : "Paystack reported a failed transaction.",
         })
         : null;
-    if (!result) return response({ received: true, ignored: true });
+    if (!result) {
+      if (outcome === "pending") return response({ received: true, pending: true }, 503);
+      console.error("paystack.webhook_status_unrecognized", { paymentId: payment.id });
+      return response({ error: "Paystack returned an unrecognized transaction status." }, 503);
+    }
     const { error } = result;
     if (error) {
       console.error("paystack.webhook_finalization_failed", {
@@ -102,7 +138,7 @@ Deno.serve(async (request) => {
     }
     return response({ received: true });
   } catch (error) {
-    console.error("paystack.webhook_error", { message: error.message });
+    console.error("paystack.webhook_error");
     return response({ error: "Webhook processing is temporarily unavailable." }, 500);
   }
 });

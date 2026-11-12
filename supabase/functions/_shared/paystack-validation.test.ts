@@ -1,6 +1,8 @@
 import { webcrypto } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  classifyPaystackTransactionStatus,
+  isPaystackInitiationEnabled,
   isValidPaystackReference,
   matchesPaystackPayment,
   verifyPaystackSignature,
@@ -11,6 +13,22 @@ beforeEach(() => {
 });
 
 describe("Paystack validation", () => {
+  it("keeps payment initiation disabled unless explicitly enabled", () => {
+    expect(isPaystackInitiationEnabled(undefined)).toBe(false);
+    expect(isPaystackInitiationEnabled("false")).toBe(false);
+    expect(isPaystackInitiationEnabled("TRUE")).toBe(false);
+    expect(isPaystackInitiationEnabled("true")).toBe(true);
+  });
+
+  it("distinguishes successful, terminal failure, pending, and unknown statuses", () => {
+    expect(classifyPaystackTransactionStatus("success")).toBe("succeeded");
+    expect(classifyPaystackTransactionStatus("failed")).toBe("failed");
+    expect(classifyPaystackTransactionStatus("abandoned")).toBe("failed");
+    expect(classifyPaystackTransactionStatus("pending")).toBe("pending");
+    expect(classifyPaystackTransactionStatus("ongoing")).toBe("pending");
+    expect(classifyPaystackTransactionStatus("reversed")).toBe("unknown");
+  });
+
   it("verifies the signature against the exact raw body", async () => {
     const body = '{"event":"charge.success","data":{"reference":"SS-0123456789abcdef0123456789abcdef"}}';
     const secret = "paystack-test-secret";
@@ -27,6 +45,9 @@ describe("Paystack validation", () => {
     const signature = [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 
     await expect(verifyPaystackSignature(body, signature, secret)).resolves.toBe(true);
+    await expect(
+      verifyPaystackSignature(new TextEncoder().encode(body), signature, secret),
+    ).resolves.toBe(true);
     await expect(verifyPaystackSignature(`${body} `, signature, secret)).resolves.toBe(false);
     await expect(verifyPaystackSignature(body, "invalid", secret)).resolves.toBe(false);
   });

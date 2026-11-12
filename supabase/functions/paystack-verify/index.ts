@@ -1,6 +1,7 @@
 import {
   authenticateUser,
   checkBrowserOrigin,
+  classifyPaystackTransactionStatus,
   matchesPaystackPayment,
   response,
   verifyPaystackReference,
@@ -47,16 +48,18 @@ Deno.serve(async (request) => {
     if (transaction.reference !== reference) {
       return response({ error: "Gateway reference did not match the booking payment." }, 409, origin);
     }
-    if (transaction.status === "success") {
-      if (!matchesPaystackPayment(
-        transaction,
-        reference,
-        Number(payment.amount_pesewas),
-        payment.currency,
-      )) {
-        console.error("paystack.verification_mismatch", { paymentId: payment.id });
-        return response({ error: "Verified transaction amount or currency did not match the booking." }, 409, origin);
-      }
+    if (!matchesPaystackPayment(
+      transaction,
+      reference,
+      Number(payment.amount_pesewas),
+      payment.currency,
+    )) {
+      console.error("paystack.verification_mismatch", { paymentId: payment.id });
+      return response({ error: "Verified transaction amount or currency did not match the booking." }, 409, origin);
+    }
+
+    const outcome = classifyPaystackTransactionStatus(transaction.status);
+    if (outcome === "succeeded") {
       const { data: bookingId, error: applyError } = await serviceClient.rpc("apply_verified_paystack_payment", {
         p_reference: reference,
         p_amount_pesewas: transaction.amount,
@@ -69,22 +72,15 @@ Deno.serve(async (request) => {
       }
       return response({ status: "succeeded", bookingId, reference }, 200, origin);
     }
-    if (transaction.status === "failed") {
-      if (!matchesPaystackPayment(
-        transaction,
-        reference,
-        Number(payment.amount_pesewas),
-        payment.currency,
-      )) {
-        console.error("paystack.verification_mismatch", { paymentId: payment.id });
-        return response({ error: "Verified transaction amount or currency did not match the booking." }, 409, origin);
-      }
+    if (outcome === "failed") {
       const { error: failureError } = await serviceClient.rpc("mark_verified_paystack_payment_failed", {
         p_reference: reference,
         p_amount_pesewas: transaction.amount,
         p_currency: transaction.currency,
         p_gateway_transaction_id: String(transaction.id),
-        p_failure_reason: "Paystack reported a failed transaction.",
+        p_failure_reason: transaction.status === "abandoned"
+          ? "Paystack reported an abandoned transaction."
+          : "Paystack reported a failed transaction.",
       });
       if (failureError) {
         console.error("paystack.failure_recording_failed", { paymentId: payment.id });
@@ -92,10 +88,17 @@ Deno.serve(async (request) => {
       }
       return response({ status: "failed", reference }, 200, origin);
     }
-    return response({ status: "pending", reference }, 200, origin);
+    if (outcome === "pending") return response({ status: "pending", reference }, 200, origin);
+    console.error("paystack.verification_status_unrecognized", { paymentId: payment.id });
+    return response({ error: "Paystack returned an unrecognized transaction status." }, 502, origin);
   } catch (error) {
-    console.error("paystack.verification_error", { message: error.message });
-    const status = error.message.includes("signed-in user") ? 401 : 500;
-    return response({ error: status === 401 ? error.message : "Payment verification is temporarily unavailable." }, status, origin);
+    const isAuthenticationError = error instanceof Error && error.message.includes("signed-in user");
+    console.error("paystack.verification_error");
+    const status = isAuthenticationError ? 401 : 500;
+    return response({
+      error: isAuthenticationError
+        ? "A signed-in user session is required."
+        : "Payment verification is temporarily unavailable.",
+    }, status, origin);
   }
 });

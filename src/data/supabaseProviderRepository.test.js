@@ -9,6 +9,7 @@ vi.mock("./supabaseClient", () => ({ getSupabaseClient }));
 import {
   getProviderWorkspaceRecords,
   saveProviderListing,
+  uploadListingMedia,
 } from "./supabaseProviderRepository";
 
 function queryResult(data, onSelect = () => {}) {
@@ -96,5 +97,85 @@ describe("supabaseProviderRepository", () => {
     expect(client.rpc).toHaveBeenCalledWith("save_provider_listing", expect.objectContaining({
       p_rooms: [expect.objectContaining({ id: "room-1", roomType: "single" })],
     }));
+  });
+
+  it("rejects unsupported and oversized media before uploading", async () => {
+    const upload = vi.fn();
+    const getUser = vi.fn();
+    getSupabaseClient.mockResolvedValue({
+      storage: { from: () => ({ upload }) },
+      auth: { getUser },
+    });
+
+    await expect(uploadListingMedia("listing-1", [
+      new File(["gif"], "floorplan.gif", { type: "image/gif" }),
+    ])).rejects.toThrow("floorplan.gif: use a JPG, PNG, or WebP image up to 5 MB.");
+    await expect(uploadListingMedia("listing-1", [
+      new File([new Uint8Array(5 * 1024 * 1024 + 1)], "large.png", { type: "image/png" }),
+    ])).rejects.toThrow("large.png: use a JPG, PNG, or WebP image up to 5 MB.");
+
+    expect(upload).not.toHaveBeenCalled();
+    expect(getUser).not.toHaveBeenCalled();
+  });
+
+  it("checks the signed-in user before creating any storage object", async () => {
+    const upload = vi.fn();
+    const client = {
+      storage: { from: () => ({ upload }) },
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    };
+    getSupabaseClient.mockResolvedValue(client);
+
+    await expect(uploadListingMedia("listing-1", [
+      new File(["jpeg"], "room.jpg", { type: "image/jpeg" }),
+    ])).rejects.toThrow("A signed-in provider account is required to upload listing images.");
+
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("uploads supported images as non-overwriting objects and records pending metadata", async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const client = {
+      storage: { from: vi.fn(() => ({ upload })) },
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "provider-1" } }, error: null }) },
+      from: vi.fn(() => ({ insert })),
+    };
+    getSupabaseClient.mockResolvedValue(client);
+
+    await expect(uploadListingMedia("listing-1", [
+      new File(["jpeg"], "room.jpg", { type: "image/jpeg" }),
+    ])).resolves.toEqual([expect.stringMatching(/^listing-1\/.+\.jpg$/)]);
+
+    expect(client.storage.from).toHaveBeenCalledWith("listing-media");
+    expect(upload).toHaveBeenCalledWith(
+      expect.stringMatching(/^listing-1\/.+\.jpg$/),
+      expect.any(File),
+      { contentType: "image/jpeg", upsert: false },
+    );
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      listing_id: "listing-1",
+      processing_status: "pending",
+      uploaded_by: "provider-1",
+    }));
+  });
+
+  it("removes an uploaded object if its metadata row cannot be created", async () => {
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const client = {
+      storage: { from: vi.fn(() => ({ upload, remove })) },
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "provider-1" } }, error: null }) },
+      from: vi.fn(() => ({
+        insert: vi.fn().mockResolvedValue({ error: new Error("metadata rejected") }),
+      })),
+    };
+    getSupabaseClient.mockResolvedValue(client);
+
+    await expect(uploadListingMedia("listing-1", [
+      new File(["png"], "room.png", { type: "image/png" }),
+    ])).rejects.toThrow("metadata rejected");
+
+    expect(remove).toHaveBeenCalledWith([expect.stringMatching(/^listing-1\/.+\.png$/)]);
   });
 });

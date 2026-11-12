@@ -6,6 +6,19 @@ export interface PaystackTransaction {
   currency: string;
 }
 
+export type PaystackTransactionOutcome = "succeeded" | "failed" | "pending" | "unknown";
+
+export function isPaystackInitiationEnabled(value: string | undefined) {
+  return value === "true";
+}
+
+export function classifyPaystackTransactionStatus(status: string): PaystackTransactionOutcome {
+  if (status === "success") return "succeeded";
+  if (status === "failed" || status === "abandoned") return "failed";
+  if (["pending", "ongoing", "processing", "queued"].includes(status)) return "pending";
+  return "unknown";
+}
+
 export function isValidPaystackReference(reference: unknown): reference is string {
   return typeof reference === "string" && /^SS-[0-9a-f]{32}$/i.test(reference);
 }
@@ -28,7 +41,7 @@ export function matchesPaystackPayment(
 }
 
 export async function verifyPaystackSignature(
-  rawBody: string,
+  rawBody: string | Uint8Array,
   signature: string,
   secret: string,
 ) {
@@ -44,10 +57,11 @@ export async function verifyPaystackSignature(
     false,
     ["verify"],
   );
+  const bodyBytes = typeof rawBody === "string" ? new TextEncoder().encode(rawBody) : rawBody;
   return crypto.subtle.verify(
     "HMAC",
     key,
     signatureBytes,
-    new TextEncoder().encode(rawBody),
+    bodyBytes,
   );
 }

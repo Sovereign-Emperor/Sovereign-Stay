@@ -147,12 +147,21 @@ export async function saveProviderListing(listingId, values, offers, publishing)
 
 export async function uploadListingMedia(listingId, files) {
   if (!files.length) return [];
-  const client = await getClient();
-  const uploaded = [];
-  for (const [index, file] of files.entries()) {
+  for (const file of files) {
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
       throw new Error(`${file.name}: use a JPG, PNG, or WebP image up to 5 MB.`);
     }
+  }
+
+  const client = await getClient();
+  const { data: userData, error: userError } = await client.auth.getUser();
+  if (userError) throw userError;
+  if (!userData.user) {
+    throw new Error("A signed-in provider account is required to upload listing images.");
+  }
+
+  const uploaded = [];
+  for (const [index, file] of files.entries()) {
     const extension = file.type.split("/")[1].replace("jpeg", "jpg");
     const path = `${listingId}/${crypto.randomUUID()}.${extension}`;
     const { error: uploadError } = await client.storage.from("listing-media").upload(path, file, {
@@ -160,12 +169,6 @@ export async function uploadListingMedia(listingId, files) {
       upsert: false,
     });
     if (uploadError) throw uploadError;
-    const { data: userData, error: userError } = await client.auth.getUser();
-    if (userError || !userData.user) {
-      const { error: cleanupError } = await client.storage.from("listing-media").remove([path]);
-      if (cleanupError) throw new Error(`Session expired. Uploaded image cleanup failed: ${cleanupError.message}`);
-      throw new Error("A signed-in provider account is required to upload listing images.");
-    }
     const { error: metadataError } = await client.from("listing_media").insert({
       listing_id: listingId,
       kind: "image",

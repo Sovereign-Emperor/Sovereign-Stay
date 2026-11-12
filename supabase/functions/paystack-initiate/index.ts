@@ -1,6 +1,7 @@
 import {
   authenticateUser,
   checkBrowserOrigin,
+  isPaystackInitiationEnabled,
   isValidPaystackReference,
   requireEnvironment,
   response,
@@ -18,6 +19,9 @@ Deno.serve(async (request) => {
   if (originError) return originError;
 
   try {
+    if (!isPaystackInitiationEnabled(Deno.env.get("PAYMENT_ENABLED"))) {
+      return response({ error: "Payment checkout is disabled." }, 503, origin);
+    }
     const [appOrigin, paystackSecret] = requireEnvironment("APP_ORIGIN", "PAYSTACK_SECRET_KEY");
     const { user, userClient, serviceClient } = await authenticateUser(request);
     let body;
@@ -86,6 +90,7 @@ Deno.serve(async (request) => {
 
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
+      redirect: "error",
       headers: {
         Authorization: `Bearer ${paystackSecret}`,
         "Content-Type": "application/json",
@@ -107,7 +112,7 @@ Deno.serve(async (request) => {
     } catch {
       checkoutHost = "";
     }
-    if (!paystackResponse.ok || !gateway?.status || !authorizationUrl ||
+    if (!paystackResponse.ok || gateway?.status !== true || !authorizationUrl ||
       checkoutHost !== "checkout.paystack.com") {
       console.error("paystack.initialization_failed", { paymentId: payment.id, status: paystackResponse.status });
       const { error: failureError } = await serviceClient.rpc("mark_paystack_initialization_failed", {
@@ -136,8 +141,13 @@ Deno.serve(async (request) => {
       currency: payment.currency,
     }, 200, origin);
   } catch (error) {
-    console.error("paystack.initiation_error", { message: error.message });
-    const status = error.message.includes("signed-in user") ? 401 : 500;
-    return response({ error: status === 401 ? error.message : "Payment initialization is temporarily unavailable." }, status, origin);
+    const isAuthenticationError = error instanceof Error && error.message.includes("signed-in user");
+    console.error("paystack.initiation_error");
+    const status = isAuthenticationError ? 401 : 500;
+    return response({
+      error: isAuthenticationError
+        ? "A signed-in user session is required."
+        : "Payment initialization is temporarily unavailable.",
+    }, status, origin);
   }
 });

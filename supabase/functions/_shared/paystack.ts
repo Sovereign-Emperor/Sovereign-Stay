@@ -1,11 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.118.0";
 import {
+  classifyPaystackTransactionStatus,
+  isPaystackInitiationEnabled,
   isValidPaystackReference,
   matchesPaystackPayment,
   verifyPaystackSignature,
 } from "./paystack-validation.ts";
 
-export { isValidPaystackReference, matchesPaystackPayment };
+export {
+  classifyPaystackTransactionStatus,
+  isPaystackInitiationEnabled,
+  isValidPaystackReference,
+  matchesPaystackPayment,
+};
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -68,7 +75,7 @@ export async function verifyPaystackReference(reference: string) {
   const [secret] = requireEnvironment("PAYSTACK_SECRET_KEY");
   const result = await fetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${secret}` } },
+    { headers: { Authorization: `Bearer ${secret}` }, redirect: "error" },
   );
   if (!result.ok) throw new Error("Paystack could not verify the transaction.");
   const body = await result.json();
@@ -90,7 +97,7 @@ export async function verifyPaystackReference(reference: string) {
   };
 }
 
-export async function verifyWebhookSignature(rawBody: string, signature: string) {
+export async function verifyWebhookSignature(rawBody: string | Uint8Array, signature: string) {
   const [secret] = requireEnvironment("PAYSTACK_SECRET_KEY");
   return verifyPaystackSignature(rawBody, signature, secret);
 }

@@ -18,6 +18,10 @@ select ok(
   'authenticated clients cannot directly select exact property addresses'
 );
 select ok(
+  not has_column_privilege('anon', 'public.properties', 'address', 'SELECT'),
+  'anonymous clients cannot directly select exact property addresses'
+);
+select ok(
   has_function_privilege(
     'authenticated', 'public.get_authorized_property_addresses(uuid[])', 'EXECUTE'
   ),
@@ -42,6 +46,12 @@ select ok(
   not has_table_privilege('authenticated', 'public.payments', 'INSERT')
   and not has_table_privilege('authenticated', 'public.payments', 'UPDATE'),
   'authenticated clients cannot write payment records directly'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.user_roles', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.user_roles', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.user_roles', 'DELETE'),
+  'authenticated clients cannot grant or remove roles directly'
 );
 select ok(
   not has_any_column_privilege('authenticated', 'public.listing_rooms', 'INSERT')
@@ -112,21 +122,121 @@ select ok(
 );
 select ok(
   (
-    select count(*) = 8
+    select count(*) = 27
     from pg_class as relation
     where relation.oid = any (array[
       'public.profiles'::regclass,
+      'public.roles'::regclass,
+      'public.user_roles'::regclass,
+      'public.provider_businesses'::regclass,
+      'public.provider_business_memberships'::regclass,
+      'public.locations'::regclass,
+      'public.institutions'::regclass,
       'public.properties'::regclass,
       'public.listings'::regclass,
+      'public.listing_institutions'::regclass,
+      'public.room_types'::regclass,
       'public.listing_rooms'::regclass,
+      'public.facilities'::regclass,
+      'public.property_facilities'::regclass,
+      'public.listing_media'::regclass,
+      'public.availability'::regclass,
+      'public.moderation_actions'::regclass,
+      'public.verification_events'::regclass,
       'public.enquiries'::regclass,
       'public.bookings'::regclass,
+      'public.booking_events'::regclass,
       'public.payments'::regclass,
-      'public.listing_reports'::regclass
+      'public.reviews'::regclass,
+      'public.listing_reports'::regclass,
+      'public.notifications'::regclass,
+      'public.platform_audit_events'::regclass,
+      'public.listing_facilities'::regclass
     ])
       and relation.relrowsecurity
   ),
-  'RLS remains enabled for exposed identity, listing, operation, and payment tables'
+  'RLS remains enabled for every public application table'
+);
+select ok(
+  not exists (
+    select 1
+    from pg_proc as function
+    join pg_namespace as schema on schema.oid = function.pronamespace
+    where schema.nspname = 'public'
+      and function.prosecdef
+      and not (
+        'search_path=""' = any(coalesce(function.proconfig, array[]::text[]))
+      )
+  ),
+  'every public SECURITY DEFINER function fixes its search path'
+);
+select ok(
+  not exists (
+    select 1
+    from pg_proc as function
+    join pg_namespace as schema on schema.oid = function.pronamespace
+    where schema.nspname = 'public'
+      and function.prosecdef
+      and has_function_privilege('anon', function.oid, 'EXECUTE')
+      and function.oid not in (
+        'public.is_property_public(uuid)'::regprocedure,
+        'public.is_listing_public(uuid)'::regprocedure
+      )
+  ),
+  'anonymous users cannot execute privileged security-definer functions'
+);
+select ok(
+  exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'listing_rooms'
+      and policyname = 'Anonymous users read active room offers for published listings'
+      and position('is_active' in qual) > 0
+  )
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'listing_rooms'
+      and policyname = 'Authenticated users read active public or managed room offers'
+      and position('is_active' in qual) > 0
+      and position('is_listing_business_member' in qual) > 0
+  ),
+  'public clients cannot read retired room offers, while managing providers can'
+);
+select ok(
+  exists (
+    select 1 from storage.buckets
+    where id = 'listing-media'
+      and not public
+      and file_size_limit = 5242880
+      and allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp']::text[]
+  ),
+  'listing media remains private and limited to supported image types and size'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'storage.objects'::regclass)
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'Business members upload to unpublished listings'
+      and position('is_listing_business_member' in with_check) > 0
+      and position('editor' in with_check) > 0
+  )
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'Business members delete unpublished listing images'
+      and position('owner' in qual) > 0
+      and position('manager' in qual) > 0
+      and position('editor' in qual) = 0
+  ),
+  'storage object operations require the expected listing membership roles'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.listing_media', 'UPDATE'),
+  'clients cannot mark uploaded media as processed or ready'
 );
 select ok(
   exists (
@@ -170,11 +280,18 @@ values
   (
     '10000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated',
     'security-provider@example.test', '', now(),
-    '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"account_type":"admin"}'::jsonb, now(), now()
   ),
   (
     '10000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated',
     'security-student@example.test', '', now(),
+    '{"provider":"email","providers":["email"]}'::jsonb,
+    '{"account_type":"provider"}'::jsonb, now(), now()
+  ),
+  (
+    '10000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated',
+    'security-admin@example.test', '', now(),
     '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()
   );
 select ok(
@@ -185,8 +302,24 @@ select ok(
     where profile.id = '10000000-0000-4000-8000-000000000002'
       and role.role_key = 'student'
   ),
-  'auth-user trigger provisions a student profile and role'
+  'auth-user trigger provisions a student role regardless of signup metadata'
 );
+select ok(
+  not exists (
+    select 1 from public.user_roles as user_role
+    join public.roles as role on role.id = user_role.role_id
+    where user_role.user_id in (
+      '10000000-0000-4000-8000-000000000001',
+      '10000000-0000-4000-8000-000000000002',
+      '10000000-0000-4000-8000-000000000003'
+    )
+      and role.role_key in ('provider', 'admin')
+  ),
+  'signup metadata cannot provision provider or administrator roles'
+);
+insert into public.user_roles (user_id, role_id)
+select '10000000-0000-4000-8000-000000000003', id
+from public.roles where role_key = 'admin';
 
 delete from public.user_roles
 where user_id = '10000000-0000-4000-8000-000000000001'
@@ -246,9 +379,85 @@ select set_config(
 );
 reset role;
 
-update public.listings
-set status = 'published', published_at = now()
-where id = current_setting('test.listing_id')::uuid;
+select ok(
+  exists (
+    select 1 from public.user_roles as user_role
+    join public.roles as role on role.id = user_role.role_id
+    where user_role.user_id = '10000000-0000-4000-8000-000000000001'
+      and role.role_key = 'provider'
+  )
+  and exists (
+    select 1 from public.provider_business_memberships as membership
+    where membership.user_id = '10000000-0000-4000-8000-000000000001'
+      and membership.provider_business_id = current_setting('test.business_id')::uuid
+      and membership.membership_role = 'owner'
+  ),
+  'provider onboarding grants provider role only through its authorized workflow'
+);
+
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
+);
+set local role authenticated;
+select public.submit_listing_for_review(current_setting('test.listing_id')::uuid);
+reset role;
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true
+);
+set local role authenticated;
+select public.admin_review_listing(
+  current_setting('test.listing_id')::uuid, 'publish', null
+);
+reset role;
+select ok(
+  (select status = 'published' from public.listings
+   where id = current_setting('test.listing_id')::uuid)
+  and exists (
+    select 1 from public.moderation_actions
+    where listing_id = current_setting('test.listing_id')::uuid
+      and actor_user_id = '10000000-0000-4000-8000-000000000003'
+      and new_status = 'published'
+  ),
+  'administrator moderation publishes a submitted listing with trusted actor attribution'
+);
+
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
+);
+set local role authenticated;
+select set_config(
+  'test.provider_addresses',
+  (select count(*)::text
+   from public.get_authorized_property_addresses(
+     array[current_setting('test.property_id')::uuid]
+   )),
+  true
+);
+reset role;
+select is(
+  current_setting('test.provider_addresses')::integer,
+  1,
+  'an active managing provider can access its exact property address'
+);
+
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true
+);
+set local role authenticated;
+select set_config(
+  'test.admin_addresses',
+  (select count(*)::text
+   from public.get_authorized_property_addresses(
+     array[current_setting('test.property_id')::uuid]
+   )),
+  true
+);
+reset role;
+select is(
+  current_setting('test.admin_addresses')::integer,
+  1,
+  'an active administrator can access an exact property address'
+);
 
 select set_config(
   'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
@@ -299,7 +508,47 @@ select throws_ok(
   null,
   'provider without a student role cannot directly create a listing report'
 );
+select throws_ok(
+  format(
+    'select public.admin_review_listing(%L::uuid, %L, %L)',
+    current_setting('test.listing_id'),
+    'rejected',
+    'A provider cannot moderate their own listing.'
+  ),
+  '42501',
+  null,
+  'provider accounts cannot execute administrator moderation'
+);
 reset role;
+
+update public.profiles
+set account_status = 'suspended'
+where id = '10000000-0000-4000-8000-000000000002';
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true
+);
+set local role authenticated;
+select throws_ok(
+  format(
+    'insert into public.enquiries (listing_id, property_id, provider_business_id, student_user_id, student_name, student_email, student_phone, message, idempotency_key) values (%L::uuid, %L::uuid, %L::uuid, %L::uuid, %L, %L, %L, %L, %L::uuid)',
+    current_setting('test.listing_id'),
+    current_setting('test.property_id'),
+    current_setting('test.business_id'),
+    '10000000-0000-4000-8000-000000000002',
+    'Suspended student',
+    'student@example.test',
+    '0200000000',
+    'This should be rejected.',
+    '30000000-0000-4000-8000-000000000003'
+  ),
+  '42501',
+  null,
+  'suspended student accounts cannot directly create enquiries'
+);
+reset role;
+update public.profiles
+set account_status = 'active'
+where id = '10000000-0000-4000-8000-000000000002';
 
 select set_config(
   'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true
@@ -362,6 +611,44 @@ select ok(
       and booking.id = current_setting('test.booking_id')::uuid
   ),
   'removing a booked room retires it and preserves the booking foreign key'
+);
+
+update public.listings
+set status = 'published', published_at = now()
+where id = current_setting('test.listing_id')::uuid;
+select set_config('request.jwt.claim.role', 'anon', true);
+set local role anon;
+select set_config(
+  'test.anonymous_room_count',
+  (select count(*)::text
+   from public.listing_rooms
+   where listing_id = current_setting('test.listing_id')::uuid),
+  true
+);
+reset role;
+select is(
+  current_setting('test.anonymous_room_count')::integer,
+  0,
+  'anonymous clients cannot read retired offers on a published listing'
+);
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
+);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+select set_config(
+  'test.provider_inactive_room_count',
+  (select count(*)::text
+   from public.listing_rooms
+   where listing_id = current_setting('test.listing_id')::uuid
+     and not is_active),
+  true
+);
+reset role;
+select is(
+  current_setting('test.provider_inactive_room_count')::integer,
+  1,
+  'managing providers retain access to retired room history'
 );
 
 select set_config(

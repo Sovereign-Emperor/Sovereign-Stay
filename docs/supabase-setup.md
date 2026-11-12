@@ -39,6 +39,8 @@ The schema history currently contains:
   provisioning and safe unassigned-user backfill, student-role insert policies,
   authorized exact-address reads, server-only audit/payment RPCs, and room-offer
   retirement that preserves booking references.
+- `20261105000100_security_validation_completion.sql` — public RLS filters out
+  retired room offers while allowing their managing providers to retain access.
 
 Do not edit applied migrations. Create a new migration for later changes and
 review it locally before any remote push. This repository has no production
@@ -57,11 +59,17 @@ group by gateway_transaction_id
 having count(*) > 1;
 ```
 
-Deploy migration 004 and the three updated payment Edge Functions together in a
-maintenance window with payment initiation disabled. Migration 004 revokes the
-older payment-failure RPC and replaces it with one that requires verified
-amount and currency. Re-enable only sandbox payments after the new functions
-and database tests pass. Do not enable live payments as part of this change.
+For a future deployment, first set `PAYMENT_ENABLED=false` and deploy the
+updated `paystack-initiate` function so new attempts fail closed. Then use a
+coordinated maintenance window to apply migrations 004 and 005 in version
+order and deploy the updated verification and webhook functions. Migration 004
+revokes the older payment-failure RPC and replaces it with one that requires
+verified amount and currency, so do not leave old handlers running after that
+migration. Reconcile any payment events received during the window against
+Paystack before re-enabling checkout. Only after the new functions and database
+tests pass may sandbox payments be enabled by setting `PAYMENT_ENABLED=true`
+in the sandbox project. Leave it false or unset elsewhere. Do not enable live
+payments as part of this change.
 
 ## Frontend mode and public configuration
 
@@ -100,13 +108,18 @@ The following functions are wired to the booking interfaces, but are not
 validated against a configured Supabase project or Paystack sandbox:
 
 - `paystack-initiate` creates a payment attempt for a student-owned accepted
-  booking and initializes Paystack using a server-derived GHS amount.
+  booking and initializes Paystack using a server-derived GHS amount. It is
+  disabled unless the server-only `PAYMENT_ENABLED` setting is exactly `true`.
 - `paystack-verify` retrieves transaction status from Paystack and only marks
   a booking paid through the service-role database function after amount,
-  currency, reference, and booking ownership checks.
+  currency, reference, and booking ownership checks. A verified failed or
+  abandoned transaction is recorded as failed; recognized pending states stay
+  pending, while an unknown status returns an error for investigation.
 - `paystack-webhook` validates Paystack's HMAC signature, re-fetches the
   transaction from Paystack, matches its reference, amount, and currency to the
   payment and booking owner, then applies an idempotent database transition.
+  Pending webhook states are retried, and unknown states are not acknowledged
+  as final.
   The HMAC-SHA512 calculation and transaction comparisons have focused tests
   in `supabase/functions/_shared/paystack-validation.test.ts`.
 
@@ -125,6 +138,8 @@ When editing a listing, room offers referenced by booking history are never
 deleted. Their historical terms cannot be edited; omitted offers are marked
 inactive, and providers must add a new offer to change the terms of a booked
 room. Availability records and booking foreign keys are preserved.
+Inactive offers are excluded by public RLS policies and the provider preview,
+but remain visible to the managing provider for booking history.
 
 Run the pgTAP workflow tests against a local Supabase database with
 `npx supabase test db --local`. This command must not be changed to `--linked`
@@ -146,6 +161,7 @@ dashboard (never commit them):
 ```sh
 npx supabase secrets set APP_ORIGIN=https://your-sandbox-app.example
 npx supabase secrets set PAYSTACK_SECRET_KEY=YOUR_PAYSTACK_TEST_SECRET
+npx supabase secrets set PAYMENT_ENABLED=false
 npx supabase secrets set PAYMENT_AMOUNT_PERCENT=100
 npx supabase secrets set SUPABASE_ANON_KEY=YOUR_PROJECT_ANON_KEY
 npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_PROJECT_SERVICE_ROLE_KEY
@@ -196,7 +212,7 @@ remain unimplemented.
   production secrets are not configured.
 - The Docker CLI is unavailable here and the local database port is not
   running, so the pgTAP suite and PostgreSQL migration lint could not execute.
-- The additive hardening migration and local pgTAP suite have not been applied
+- The additive hardening migrations and local pgTAP suite have not been applied
   or validated against a PostgreSQL server in this environment. A passing
   mocked frontend test or SQL source inspection is not an RLS integration test.
 - Paystack sandbox credentials, webhook delivery, email provider, project
