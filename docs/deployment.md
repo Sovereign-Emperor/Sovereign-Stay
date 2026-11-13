@@ -119,17 +119,16 @@ quota or managed edge/WAF control) with an explicit retry policy.
 The repository's `vercel.json` rewrites the application routes (including
 `/properties/*`, `/auth/*`, `/provider/*`, `/student/*`, `/admin`, and
 `/payment/*`) to `index.html` so direct visits and browser refreshes work.
-Static assets are not rewritten; missing asset paths remain 404. Other static
-hosts must provide equivalent SPA fallback behavior.
+Static assets are not rewritten; missing asset paths remain 404. On Vercel,
+the same file sets `X-Content-Type-Options`, `Referrer-Policy`,
+`X-Frame-Options`, CSP `frame-ancestors 'none'`, and a restrictive
+`Permissions-Policy`. Other static hosts must provide equivalent SPA fallback
+and response headers.
 
 Set response headers at the hosting/CDN layer, not with client-side JavaScript.
-At minimum configure:
+In addition to the Vercel headers above, configure:
 
 - `Strict-Transport-Security` after HTTPS and subdomains are confirmed.
-- `X-Content-Type-Options: nosniff`.
-- `Referrer-Policy: strict-origin-when-cross-origin`.
-- `X-Frame-Options: DENY` and CSP `frame-ancestors 'none'`.
-- `Permissions-Policy` disabling unused camera, microphone, and geolocation.
 - A tested Content Security Policy restricted to `'self'`, the exact Supabase
   project origin, the image host used by the app, and the Google Fonts origins
   used in `index.html`. Keep `object-src 'none'`, `base-uri 'self'`, and
@@ -137,8 +136,8 @@ At minimum configure:
   navigation to `https://checkout.paystack.com` under the selected CSP.
 
 Do not copy a broad wildcard policy without testing it against the deployed
-application's network requests. No hosting provider or CSP has been configured
-or verified by this repository.
+application's network requests. The Vercel `frame-ancestors` directive does
+not replace the still-required resource policy described above.
 
 ## Verification and post-deployment smoke tests
 
