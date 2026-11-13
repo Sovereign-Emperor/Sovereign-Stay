@@ -116,10 +116,11 @@ quota or managed edge/WAF control) with an explicit retry policy.
 
 ## Frontend hosting, routing, and security headers
 
-Configure the static host to serve the built Vite assets over HTTPS and rewrite
-application routes (including `/properties/*`, `/auth/*`, `/provider/*`,
-`/student/*`, `/admin`, and `/payment/*`) to `index.html`, while preserving
-real asset paths and returning 404 for missing assets.
+The repository's `vercel.json` rewrites the application routes (including
+`/properties/*`, `/auth/*`, `/provider/*`, `/student/*`, `/admin`, and
+`/payment/*`) to `index.html` so direct visits and browser refreshes work.
+Static assets are not rewritten; missing asset paths remain 404. Other static
+hosts must provide equivalent SPA fallback behavior.
 
 Set response headers at the hosting/CDN layer, not with client-side JavaScript.
 At minimum configure:
