@@ -171,6 +171,35 @@ select ok(
   'every public SECURITY DEFINER function fixes its search path'
 );
 select ok(
+  not has_function_privilege(
+    'anon', 'public.is_listing_business_member(uuid,text[])', 'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon', 'public.has_role(text)', 'EXECUTE'
+  )
+  and has_function_privilege(
+    'anon', 'public.is_listing_public(uuid)', 'EXECUTE'
+  )
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'listing_facilities'
+      and policyname = 'Anonymous users read facilities of published listings'
+      and position('is_listing_public' in qual) > 0
+      and position('is_listing_business_member' in qual) = 0
+      and position('has_role' in qual) = 0
+  )
+  and exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'listing_facilities'
+      and policyname = 'Authenticated users read public or managed listing facilities'
+      and position('is_listing_business_member' in qual) > 0
+      and position('has_role' in qual) > 0
+  ),
+  'anonymous facility reads avoid authenticated-only helper functions'
+);
+select ok(
   not exists (
     select 1
     from pg_proc as function

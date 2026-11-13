@@ -94,7 +94,7 @@ VITE_SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
 Use the Supabase publishable/anon key only. It is browser-visible; RLS and
 database authorization are required. Supabase mode uses the Supabase listing,
 provider, enquiry, and booking adapters and does not fall back to demo data.
-Migrations 001–006 must be applied in order and the repositories validated
+Migrations 001–007 must be applied in order and the repositories validated
 against that schema before the routes can work. Authentication requires email
 provider configuration and email delivery in the Supabase dashboard.
 Configure the allowed redirect URLs for `/auth/callback` and `/auth/reset`.

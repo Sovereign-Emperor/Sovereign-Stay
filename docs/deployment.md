@@ -3,7 +3,7 @@
 ## Readiness boundary
 
 This repository contains application code and ordered migrations, not proof of
-a deployed or validated Supabase environment. Migrations 001–006 and their
+a deployed or validated Supabase environment. Migrations 001–007 and their
 RLS policies have not been runtime-validated in the current development
 workflow. Do not deploy real student data or enable payments until the database
 checks and the restricted-user smoke tests below have been completed in an
@@ -40,6 +40,7 @@ project first:
 4. `20261104000100_security_and_workflow_hardening.sql`
 5. `20261105000100_security_validation_completion.sql`
 6. `20261106000100_review_authorization_hardening.sql`
+7. `20261113000100_listing_facilities_anon_policy_fix.sql`
 
 Do not edit applied migration history. Before migration 004, check for duplicate
 non-null `payments.gateway_transaction_id` values using the preflight query in
@@ -71,7 +72,7 @@ Do not add a public bucket or a client-side approval path as a workaround.
 ## Edge Functions and server-only configuration
 
 Deploy `paystack-initiate`, `paystack-verify`, and `paystack-webhook` only to an
-approved non-production Supabase project after migrations 001–006 pass review.
+approved non-production Supabase project after migrations 001–007 pass review.
 Keep the webhook's platform JWT verification disabled only because it checks
 Paystack's HMAC signature itself; the other functions require a verified
 Supabase user. Configure the exact browser origin in `APP_ORIGIN`.
