@@ -99,6 +99,16 @@ against that schema before the routes can work. Authentication requires email
 provider configuration and email delivery in the Supabase dashboard.
 Configure the allowed redirect URLs for `/auth/callback` and `/auth/reset`.
 
+The built-in Supabase email service is intended for development, currently
+limits sending to 2 messages per hour, and may only deliver to project-team
+addresses. Public signup and password recovery require a custom SMTP provider.
+Configure its verified sender address and credentials in the Supabase
+Authentication email/SMTP settings, and set up SPF, DKIM, and DMARC for the
+sender domain. Keep SMTP credentials in Supabase settings, never in Vite
+variables or the repository. An `email rate limit exceeded` response is not a
+reason to disable email confirmation or repeatedly retry; wait for the limit
+to recover and test with a mailbox you control after custom SMTP is configured.
+
 Vite variables are embedded in the frontend. Never put a database password,
 service-role key, Paystack secret, email-provider key, or other private
 credential in a `VITE_` variable. The `.gitignore` excludes machine-specific

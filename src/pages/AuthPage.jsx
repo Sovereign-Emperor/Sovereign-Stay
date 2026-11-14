@@ -16,6 +16,20 @@ const modes = {
   reset: { title: "Choose a new password", description: "Use a unique password for your account." },
 };
 
+function getAuthRequestErrorMessage(error) {
+  const message = typeof error?.message === "string" ? error.message : "";
+  const isEmailRateLimited =
+    error?.status === 429
+    || error?.code === "over_email_send_rate_limit"
+    || /email rate limit exceeded/i.test(message);
+
+  if (isEmailRateLimited) {
+    return "Email sending is temporarily rate-limited. Please wait before trying again. If this continues, contact support.";
+  }
+
+  return message || "The account request could not be completed.";
+}
+
 export default function AuthPage() {
   const { mode = "login" } = useParams();
   const location = useLocation();
@@ -90,7 +104,7 @@ export default function AuthPage() {
         setPasswordUpdated(true);
       }
     } catch (cause) {
-      setError(cause.message || "The account request could not be completed.");
+      setError(getAuthRequestErrorMessage(cause));
     } finally {
       setBusy(false);
     }
