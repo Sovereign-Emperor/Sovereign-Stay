@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getProviderWorkspaceRecords, saveProviderProperty, saveProviderListing, submitProviderListingForReview, archiveProviderListing, uploadListingMedia } from "../../data/supabaseProviderRepository";
+import { getProviderWorkspaceRecords, saveProviderProperty, saveProviderListing, submitProviderListingForReview, archiveProviderListing, uploadListingMedia, processPendingListingMedia, requestProviderListingEdit } from "../../data/supabaseProviderRepository";
 
 const EMPTY_PROPERTY = { name: "", type: "", description: "", region: "", city: "", area: "", address: "" };
 const EMPTY_OFFER = { roomType: "", description: "", occupancy: "1", quantity: "1", price: "", period: "semester", deposit: "", availabilityStatus: "unknown", features: "" };
@@ -122,9 +122,11 @@ export function ProviderBackendPropertyDetail() {
 }
 
 export function ProviderBackendListings() {
+  const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
     try {
@@ -143,12 +145,42 @@ export function ProviderBackendListings() {
     catch (cause) { setError(cause.message || "Listing could not be archived."); }
     finally { setBusy(false); }
   }
+  async function processPhotos(id) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const count = await processPendingListingMedia(id);
+      setNotice(count ? `${count} listing photo${count === 1 ? "" : "s"} processed.` : "There are no pending listing photos.");
+      await load();
+    } catch (cause) {
+      setError(cause.message || "Listing photos could not be processed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function editPublishedListing(id) {
+    if (!window.confirm("This listing will be hidden from students until you save the changes and an administrator approves it again. Continue?")) return;
+    setBusy(true);
+    setError("");
+    try {
+      await requestProviderListingEdit(id);
+      navigate(`/provider/listings/${id}/edit`);
+    } catch (cause) {
+      setError(cause.message || "The listing could not be returned for editing.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return <div className="provider-page"><header className="provider-page-intro"><div><p className="provider-eyebrow">SUPABASE MARKETPLACE</p><h2>Your listings</h2><p>Only moderator-approved listings are visible to students.</p></div><Link className="provider-primary-button" to="/provider/listings/new">Create listing</Link></header>
     {error && <p className="provider-form-error-banner" role="alert">{error}</p>}
+    {notice && <p role="status">{notice}</p>}
     {records.length ? <div className="provider-listing-grid">{records.map((listing) => {
       const businessId = one(listing.properties)?.provider_business_id;
       const membership = workspaces.find(({ id }) => id === businessId);
-      return <article className="provider-listing-card" key={listing.id}><h3>{listing.name}</h3><p>{one(listing.properties)?.name} · {listing.status}</p><p>Updated {new Date(listing.updated_at).toLocaleString()}</p><Link to={`/provider/listings/${listing.id}`}>Preview listing</Link>{["draft", "rejected"].includes(listing.status) && <Link to={`/provider/listings/${listing.id}/edit`}>Edit listing</Link>}{membership && ["owner", "manager"].includes(membership.role) && listing.status !== "archived" && <button type="button" disabled={busy} onClick={() => archive(listing.id)}>Archive</button>}</article>;
+      const pendingPhotos = (listing.listing_media ?? []).filter(({ processing_status: status }) => ["pending", "processing"].includes(status));
+      const canManagePublished = membership && ["owner", "manager"].includes(membership.role);
+      return <article className="provider-listing-card" key={listing.id}><h3>{listing.name}</h3><p>{one(listing.properties)?.name} · {listing.status}</p><p>Updated {new Date(listing.updated_at).toLocaleString()}</p><Link to={`/provider/listings/${listing.id}`}>Preview listing</Link>{["draft", "rejected"].includes(listing.status) && <Link to={`/provider/listings/${listing.id}/edit`}>Edit listing</Link>}{listing.status === "published" && canManagePublished && <button type="button" disabled={busy} onClick={() => editPublishedListing(listing.id)}>Edit listing and photos</button>}{membership && pendingPhotos.length > 0 && <button type="button" disabled={busy} onClick={() => processPhotos(listing.id)}>Process {pendingPhotos.length} pending photo{pendingPhotos.length === 1 ? "" : "s"}</button>}{canManagePublished && listing.status !== "archived" && <button type="button" disabled={busy} onClick={() => archive(listing.id)}>Archive</button>}</article>;
     })}</div> : !error && <div className="provider-empty-state"><h3>No listings yet</h3><Link className="provider-primary-button" to="/provider/listings/new">Create a listing</Link></div>}
   </div>;
 }
@@ -156,13 +188,27 @@ export function ProviderBackendListings() {
 export function ProviderBackendListingForm() {
   const { listingId } = useParams();
   const navigate = useNavigate();
+  const [savedListingId, setSavedListingId] = useState(listingId ?? null);
   const [properties, setProperties] = useState([]);
   const [values, setValues] = useState({ propertyId: "", name: "", description: "", accommodationCategory: "", locationSummary: "", institution: "", availableFrom: "", availabilityStatus: "unknown", facilityNames: [], utilities: "", houseRules: "", depositRequirements: "", contactPreference: "enquiry", viewingPreference: "" });
   const [facilityOptions, setFacilityOptions] = useState([]);
   const [offers, setOffers] = useState([]);
   const [files, setFiles] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [existingMedia, setExistingMedia] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const previews = files.map((file) => ({
+      file,
+      url: typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : "",
+    }));
+    setPhotoPreviews(previews);
+    return () => previews.forEach(({ url }) => {
+      if (url && typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(url);
+    });
+  }, [files]);
 
   useEffect(() => {
     let active = true;
@@ -173,6 +219,7 @@ export function ProviderBackendListingForm() {
       const listing = listings.find(({ id }) => id === listingId);
       if (listingId && !listing) throw new Error("Listing not found in your provider business.");
       if (listing) {
+        setExistingMedia(listing.listing_media ?? []);
         setValues({
           propertyId: listing.property_id, name: listing.name, description: listing.description,
           accommodationCategory: listing.accommodation_category ?? "",
@@ -206,17 +253,38 @@ export function ProviderBackendListingForm() {
     if (requestReview && offers.length === 0) { setError("Add at least one room offer before requesting review."); return; }
     setBusy(true); setError("");
     try {
-      const id = await saveProviderListing(listingId ?? null, values, offers, false);
+      const id = await saveProviderListing(savedListingId, values, offers, false);
+      setSavedListingId(id);
       await uploadListingMedia(id, files);
+      setFiles([]);
+      await processPendingListingMedia(id);
       if (requestReview) await submitProviderListingForReview(id);
       navigate(`/provider/listings/${id}`, { replace: true, state: { notice: requestReview ? "Listing submitted for moderator review." : "Draft saved to Supabase." } });
     } catch (cause) { setError(cause.message || "Listing could not be saved."); }
     finally { setBusy(false); }
   }
 
+  async function retryPhotoProcessing() {
+    if (!savedListingId || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await processPendingListingMedia(savedListingId);
+      const workspace = await getProviderWorkspaceRecords();
+      const listing = workspace.listings.find(({ id }) => id === savedListingId);
+      setExistingMedia(listing?.listing_media ?? []);
+      setError("");
+    } catch (cause) {
+      setError(cause.message || "Listing photos could not be processed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const updateArray = (field, value) => setValues((current) => ({ ...current, [field]: current[field].includes(value) ? current[field].filter((item) => item !== value) : [...current[field], value] }));
   return <div className="provider-page"><Link to="/provider/listings">← Listings</Link><header className="provider-page-intro"><div><p className="provider-eyebrow">SUPABASE LISTING EDITOR</p><h2>{listingId ? "Edit listing" : "Create listing"}</h2><p>Review approval is required before students can find a new listing.</p></div></header>
     {error && <p className="provider-form-error-banner" role="alert">{error}</p>}
+    {existingMedia.length > 0 && <section className="provider-form-field-wide" aria-label="Uploaded listing photos"><h3>Uploaded photos</h3><ul>{existingMedia.map((photo) => <li key={photo.id}>Photo {photo.sort_order + 1}: {photo.processing_status === "ready" ? "processed" : photo.processing_status}</li>)}</ul>{existingMedia.some(({ processing_status: status }) => ["pending", "processing"].includes(status)) && <button type="button" disabled={busy} onClick={retryPhotoProcessing}>{busy ? "Processing…" : "Retry pending photo processing"}</button>}</section>}
     <form className="provider-listing-form" onSubmit={submit}>
       <label className="provider-form-field">Physical property<select required value={values.propertyId} onChange={(event) => setField("propertyId", event.target.value)}>{properties.map((property) => <option key={property.id} value={property.id}>{property.name}</option>)}</select></label>
       <label className="provider-form-field">Listing headline<input required maxLength={200} value={values.name} onChange={(event) => setField("name", event.target.value)} /></label>
@@ -244,8 +312,9 @@ export function ProviderBackendListingForm() {
         <label>Features<input value={offer.features} onChange={(event) => updateOffer(index, "features", event.target.value)} /></label>
         <button type="button" onClick={() => setOffers((current) => current.filter((_, i) => i !== index))}>Remove room offer</button>
       </fieldset>)}<button type="button" onClick={() => setOffers((current) => [...current, { ...EMPTY_OFFER }])}>Add room offer</button></section>
-      <label className="provider-form-field provider-form-field-wide">Listing photos (JPG, PNG, WebP; up to 5 MB each)<input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setFiles([...event.target.files])} /></label>
-      <p className="provider-form-field-wide">Uploaded photos remain private and pending processing; this deployment has no image-processing pipeline, so public display is not enabled yet.</p>
+      <label className="provider-form-field provider-form-field-wide">Listing photos (JPG, PNG, WebP; up to 5 MB each)<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy} onChange={(event) => { setFiles((current) => [...current, ...Array.from(event.target.files ?? [])]); event.currentTarget.value = ""; }} /></label>
+      {photoPreviews.length > 0 && <div className="provider-photo-grid provider-form-field-wide" aria-label="Selected listing photos">{photoPreviews.map(({ file, url }, index) => <article className="provider-photo-card" key={`${file.name}-${file.lastModified}-${index}`}><div className="provider-photo-preview">{url ? <img src={url} alt={`Preview of ${file.name}`} /> : <span>{file.name}</span>}</div><div className="provider-photo-card-footer"><span className="provider-photo-filename" title={file.name}>{file.name}</span><button type="button" disabled={busy} aria-label={`Remove ${file.name}`} onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}>Remove</button></div></article>)}</div>}
+      <p className="provider-form-field-wide">Photos are uploaded privately, validated and re-encoded on the server, then shown to students only after the listing is published.</p>
       <div className="provider-form-actions"><button type="submit" value="save" disabled={busy}>{busy ? "Saving…" : "Save draft"}</button><button type="submit" value="review" disabled={busy}>{busy ? "Submitting…" : "Submit for review"}</button></div>
     </form>
   </div>;

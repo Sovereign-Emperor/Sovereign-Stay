@@ -880,5 +880,68 @@ select ok(
   'active students retain the ability to submit reviews for completed bookings'
 );
 
+select ok(
+  has_function_privilege(
+    'authenticated', 'public.request_provider_listing_edit(uuid)', 'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon', 'public.request_provider_listing_edit(uuid)', 'EXECUTE'
+  ),
+  'only authenticated users can execute the provider listing edit request'
+);
+select ok(
+  exists (
+    select 1 from pg_proc as function
+    where function.oid = 'public.request_provider_listing_edit(uuid)'::regprocedure
+      and function.prosecdef
+      and 'search_path=""' = any (function.proconfig)
+  ),
+  'provider listing edit function uses SECURITY DEFINER with a fixed empty search path'
+);
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true
+);
+set local role authenticated;
+select throws_ok(
+  format(
+    'select public.request_provider_listing_edit(%L::uuid)',
+    current_setting('test.listing_id')
+  ),
+  '42501',
+  null,
+  'students cannot request edits to a provider listing'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true
+);
+set local role authenticated;
+select lives_ok(
+  format(
+    'select public.request_provider_listing_edit(%L::uuid)',
+    current_setting('test.listing_id')
+  ),
+  'a provider owner can return a published listing for editing'
+);
+reset role;
+select ok(
+  exists (
+    select 1 from public.listings
+    where id = current_setting('test.listing_id')::uuid
+      and status = 'draft' and published_at is null
+  ),
+  'requesting a published listing edit hides it pending renewed approval'
+);
+select ok(
+  exists (
+    select 1 from public.platform_audit_events
+    where actor_user_id = '10000000-0000-4000-8000-000000000001'
+      and action = 'provider_listing_edit_requested'
+      and resource_id = current_setting('test.listing_id')::uuid
+  ),
+  'provider edit requests are attributed in the audit log'
+);
+
 select * from finish();
 rollback;

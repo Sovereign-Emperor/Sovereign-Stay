@@ -57,22 +57,26 @@ this guide.
 
 Migration 002 creates the private `listing-media` bucket with a 5 MiB limit
 and JPEG/PNG/WebP declared MIME allowlist. Object policies scope reads and
-writes by listing lifecycle and provider membership. The frontend performs
-declared MIME and size checks, but those checks do **not** validate file
-contents.
+writes by listing lifecycle and provider membership. The `listing-media-process` Edge Function validates actual image signatures
+and dimensions, decodes and re-encodes accepted images as WebP, and marks media
+ready only after successful processing. It requires an authenticated provider
+membership and keeps service-role access server-side. Deploy the additive
+`20261114000100_provider_listing_edit.sql` migration before deploying the
+frontend workflow; deploy the Edge Function with
+`supabase functions deploy listing-media-process` and verify its required
+Supabase environment secrets in the project secret manager. A function
+deployment alone does not apply the SQL migration.
 
-There is no trusted image decoder/re-encoder or file-signature processing
-service in this repository. Upload metadata remains `pending`; public listing
-queries and object reads require media to be marked `ready`. Clients cannot
-mark uploads ready. Keep media private and pending until a trusted processor
-is integrated and tested to enforce byte-size limits, inspect actual file
-signatures, decode and re-encode approved formats, and fail closed on errors.
-Do not add a public bucket or a client-side approval path as a workaround.
+Do not make the bucket public or allow clients to mark media ready. Invalid or
+failed uploads remain private. Malware scanning, automated cleanup, and
+operational signed-URL management are not included.
 
 ## Edge Functions and server-only configuration
 
-Deploy `paystack-initiate`, `paystack-verify`, and `paystack-webhook` only to an
-approved non-production Supabase project after migrations 001–007 pass review.
+Deploy `listing-media-process` only after all required migrations are reviewed
+and applied to the intended Supabase project. Deploy
+`paystack-initiate`, `paystack-verify`, and `paystack-webhook` only to an
+approved non-production Supabase project after the payment migrations pass review.
 Keep the webhook's platform JWT verification disabled only because it checks
 Paystack's HMAC signature itself; the other functions require a verified
 Supabase user. Configure the exact browser origin in `APP_ORIGIN`.

@@ -131,13 +131,15 @@ The migrations stage account/profile roles, properties, listings, normalized
 room offers and facilities, enquiries, bookings, payment records, trust
 records, RLS policies, and a private listing-media bucket. The frontend has
 Supabase email-auth, provider, student booking, enquiry inbox, and payment
-initiation interfaces. Listing photo uploads are stored as pending private
-media; without a trusted image-processing pipeline they are not shown to
-students. The current booking charge is the full accepted room-price snapshot
-in GHS by default. A server-side `PAYMENT_AMOUNT_PERCENT` setting (1–100,
-default 100) controls the initial charge percentage. The code paths and Edge Functions have not been validated against a
-local or remote Supabase project, so this is not evidence that backend,
-payment, or RLS behavior works in deployment.
+initiation interfaces. Listing photos upload to private storage and remain
+hidden until the authenticated `listing-media-process` Edge Function validates
+and re-encodes them. Editing a published listing returns it to draft and
+requires administrator approval before it is shown again. The current booking
+charge is the full accepted room-price snapshot in GHS by default. A
+server-side `PAYMENT_AMOUNT_PERCENT` setting (1–100, default 100) controls the
+initial charge percentage. The code paths and Edge Functions have not been
+validated against a local or remote Supabase project, so this is not evidence
+that backend, payment, or RLS behavior works in deployment.
 
 The additive `20261104000100_security_and_workflow_hardening.sql` migration
 seeds required catalogues, backfills only users without an existing role,
@@ -160,6 +162,9 @@ Payment initiation is fail-closed unless the server-only
 
 The additive `20261106000100_review_authorization_hardening.sql` migration
 limits review submissions to active student accounts with a completed booking.
+The additive `20261114000100_provider_listing_edit.sql` migration adds a
+server-authorized, audit-logged workflow for returning published listings to
+draft before provider edits.
 
 **Not production-ready:** no Supabase project is linked, migrations and RLS
 have not been run, and no email delivery, Paystack sandbox webhook, monitoring,

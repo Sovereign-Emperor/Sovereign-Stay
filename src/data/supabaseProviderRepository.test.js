@@ -8,6 +8,8 @@ vi.mock("./supabaseClient", () => ({ getSupabaseClient }));
 
 import {
   getProviderWorkspaceRecords,
+  processPendingListingMedia,
+  requestProviderListingEdit,
   saveProviderListing,
   uploadListingMedia,
 } from "./supabaseProviderRepository";
@@ -19,6 +21,7 @@ function queryResult(data, onSelect = () => {}) {
       return query;
     },
     order: () => query,
+    eq: () => query,
     in: () => query,
     then: (resolve, reject) => Promise.resolve({ data, error: null }).then(resolve, reject),
   };
@@ -133,9 +136,11 @@ describe("supabaseProviderRepository", () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
-  it("uploads supported images as non-overwriting objects and records pending metadata", async () => {
+  it("uploads supported images privately and returns metadata IDs for trusted processing", async () => {
     const upload = vi.fn().mockResolvedValue({ error: null });
-    const insert = vi.fn().mockResolvedValue({ error: null });
+    const insert = vi.fn().mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: [{ id: "media-1" }], error: null }),
+    });
     const client = {
       storage: { from: vi.fn(() => ({ upload })) },
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "provider-1" } }, error: null }) },
@@ -145,7 +150,7 @@ describe("supabaseProviderRepository", () => {
 
     await expect(uploadListingMedia("listing-1", [
       new File(["jpeg"], "room.jpg", { type: "image/jpeg" }),
-    ])).resolves.toEqual([expect.stringMatching(/^listing-1\/.+\.jpg$/)]);
+    ])).resolves.toEqual(["media-1"]);
 
     expect(client.storage.from).toHaveBeenCalledWith("listing-media");
     expect(upload).toHaveBeenCalledWith(
@@ -153,29 +158,74 @@ describe("supabaseProviderRepository", () => {
       expect.any(File),
       { contentType: "image/jpeg", upsert: false },
     );
-    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+    expect(insert).toHaveBeenCalledWith([expect.objectContaining({
       listing_id: "listing-1",
       processing_status: "pending",
       uploaded_by: "provider-1",
-    }));
+    })]);
   });
 
-  it("removes an uploaded object if its metadata row cannot be created", async () => {
-    const upload = vi.fn().mockResolvedValue({ error: null });
+  it("removes already-uploaded objects if a later image upload fails", async () => {
+    const upload = vi.fn()
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: new Error("storage rejected the second file") });
     const remove = vi.fn().mockResolvedValue({ error: null });
     const client = {
       storage: { from: vi.fn(() => ({ upload, remove })) },
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "provider-1" } }, error: null }) },
-      from: vi.fn(() => ({
-        insert: vi.fn().mockResolvedValue({ error: new Error("metadata rejected") }),
-      })),
+      from: vi.fn(),
     };
     getSupabaseClient.mockResolvedValue(client);
 
     await expect(uploadListingMedia("listing-1", [
-      new File(["png"], "room.png", { type: "image/png" }),
-    ])).rejects.toThrow("metadata rejected");
+      new File(["jpeg"], "room-one.jpg", { type: "image/jpeg" }),
+      new File(["png"], "room-two.png", { type: "image/png" }),
+    ])).rejects.toThrow("storage rejected the second file");
 
-    expect(remove).toHaveBeenCalledWith([expect.stringMatching(/^listing-1\/.+\.png$/)]);
+    expect(remove).toHaveBeenCalledWith([expect.stringMatching(/^listing-1\/.+\.jpg$/)]);
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("processes pending and interrupted media through the authenticated Edge Function", async () => {
+    const invoke = vi.fn().mockResolvedValue({ data: { status: "ready" }, error: null });
+    const client = {
+      from: vi.fn(() => queryResult([{ id: "media-1" }, { id: "media-2" }])),
+      functions: { invoke },
+    };
+    getSupabaseClient.mockResolvedValue(client);
+
+    await expect(processPendingListingMedia("listing-1")).resolves.toBe(2);
+    expect(invoke).toHaveBeenNthCalledWith(1, "listing-media-process", {
+      body: { mediaId: "media-1" },
+    });
+    expect(invoke).toHaveBeenNthCalledWith(2, "listing-media-process", {
+      body: { mediaId: "media-2" },
+    });
+  });
+
+  it("reports processing errors without treating private photos as ready", async () => {
+    const client = {
+      from: vi.fn(() => queryResult([{ id: "media-1" }])),
+      functions: {
+        invoke: vi.fn().mockResolvedValue({
+          data: null,
+          error: new Error("processor unavailable"),
+        }),
+      },
+    };
+    getSupabaseClient.mockResolvedValue(client);
+
+    await expect(processPendingListingMedia("listing-1"))
+      .rejects.toThrow("Photo processing failed. The photo remains private; retry from this listing.");
+  });
+
+  it("requests a controlled re-review before changing a published listing", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    getSupabaseClient.mockResolvedValue({ rpc });
+
+    await expect(requestProviderListingEdit("listing-1")).resolves.toBeUndefined();
+    expect(rpc).toHaveBeenCalledWith("request_provider_listing_edit", {
+      p_listing_id: "listing-1",
+    });
   });
 });

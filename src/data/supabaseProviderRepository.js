@@ -87,7 +87,7 @@ export async function getProviderWorkspaceRecords() {
   let listings = [];
   if (propertyIds.length) {
     const { data, error } = await client.from("listings")
-        .select(`${LISTING_FIELDS}, properties!inner(provider_business_id, name), listing_rooms(id, label, description, price_amount, currency, pricing_period, occupancy, available_quantity, is_active, deposit_amount, features, availability_status, room_types(display_name)), listing_facilities(facilities(display_name))`)
+        .select(`${LISTING_FIELDS}, properties!inner(provider_business_id, name), listing_rooms(id, label, description, price_amount, currency, pricing_period, occupancy, available_quantity, is_active, deposit_amount, features, availability_status, room_types(display_name)), listing_facilities(facilities(display_name)), listing_media(id, processing_status, is_cover, sort_order)`)
       .in("property_id", propertyIds)
       .order("updated_at", { ascending: false });
     if (error) throw error;
@@ -160,16 +160,11 @@ export async function uploadListingMedia(listingId, files) {
     throw new Error("A signed-in provider account is required to upload listing images.");
   }
 
-  const uploaded = [];
-  for (const [index, file] of files.entries()) {
+  const uploadedPaths = [];
+  const mediaRows = files.map((file, index) => {
     const extension = file.type.split("/")[1].replace("jpeg", "jpg");
     const path = `${listingId}/${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await client.storage.from("listing-media").upload(path, file, {
-      contentType: file.type,
-      upsert: false,
-    });
-    if (uploadError) throw uploadError;
-    const { error: metadataError } = await client.from("listing_media").insert({
+    return {
       listing_id: listingId,
       kind: "image",
       storage_bucket: "listing-media",
@@ -179,13 +174,66 @@ export async function uploadListingMedia(listingId, files) {
       alt_text: file.name,
       uploaded_by: userData.user.id,
       processing_status: "pending",
-    });
-    if (metadataError) {
-      const { error: cleanupError } = await client.storage.from("listing-media").remove([path]);
-      if (cleanupError) throw new Error(`${metadataError.message} Uploaded image cleanup failed: ${cleanupError.message}`);
-      throw metadataError;
+      file,
+    };
+  });
+
+  try {
+    for (const row of mediaRows) {
+      const { error: uploadError } = await client.storage.from("listing-media").upload(
+        row.storage_path,
+        row.file,
+        { contentType: row.file.type, upsert: false },
+      );
+      if (uploadError) throw uploadError;
+      uploadedPaths.push(row.storage_path);
     }
-    uploaded.push(path);
+
+    const { data, error: metadataError } = await client.from("listing_media")
+      .insert(mediaRows.map(({ file: _file, ...row }) => row))
+      .select("id");
+    if (metadataError) throw metadataError;
+    return (data ?? []).map(({ id }) => id);
+  } catch (error) {
+    if (uploadedPaths.length > 0) {
+      const { error: cleanupError } = await client.storage.from("listing-media").remove(uploadedPaths);
+      if (cleanupError) {
+        const message = error instanceof Error ? error.message : "The listing photos could not be uploaded.";
+        throw new Error(`${message} Uploaded photo cleanup failed: ${cleanupError.message}`);
+      }
+    }
+    throw error;
   }
-  return uploaded;
+}
+
+export async function processPendingListingMedia(listingId) {
+  const client = await getClient();
+  const { data: media, error: mediaError } = await client.from("listing_media")
+    .select("id")
+    .eq("listing_id", listingId)
+    .in("processing_status", ["pending", "processing"])
+    .order("sort_order");
+  if (mediaError) throw mediaError;
+
+  for (const { id } of media ?? []) {
+    const { data, error } = await client.functions.invoke("listing-media-process", {
+      body: { mediaId: id },
+    });
+    if (error) {
+      throw new Error(`Photo processing failed. The photo remains private; retry from this listing. ${error.message}`);
+    }
+    if (data?.status !== "ready") {
+      throw new Error("The photo processor did not confirm the image is ready. The photo remains private.");
+    }
+  }
+
+  return media?.length ?? 0;
+}
+
+export async function requestProviderListingEdit(listingId) {
+  const client = await getClient();
+  const { error } = await client.rpc("request_provider_listing_edit", {
+    p_listing_id: listingId,
+  });
+  if (error) throw error;
 }

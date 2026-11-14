@@ -218,10 +218,12 @@ before real data is used.
 
 The private media bucket restricts object operations by listing membership and
 listing lifecycle. Providers can upload media metadata and image objects to a
-private listing path. Uploads remain pending and are not shown to students
-until a trusted image-processing workflow marks them ready. Malware scanning,
-image processing, automated cleanup, and operational signed-URL management
-remain unimplemented.
+private listing path. The `listing-media-process` Edge Function validates and
+re-encodes accepted photos before marking them ready; it must be deployed
+separately after the SQL migrations and configured with server-only Supabase
+secrets. Until that is done, uploads remain pending and are not shown to
+students. Malware scanning, automated cleanup, and operational signed-URL
+management remain unimplemented.
 
 ## Current validation and launch blockers
 
@@ -236,8 +238,9 @@ remain unimplemented.
 - Paystack sandbox credentials, webhook delivery, email provider, project
   secrets, and real student/provider accounts are unavailable, so no complete
   transaction or browser journey can be claimed.
-- Listing uploads stay private and pending because image processing and
-  approval operations are not configured.
+- Listing uploads stay private and pending until the image-processing
+  Edge Function is deployed and configured. Published-listing edits require
+  the additive provider-edit migration and a renewed administrator approval.
 - No production hosting target/domain, monitoring, email service, backup plan,
   or deployment pipeline has been configured or verified.
 

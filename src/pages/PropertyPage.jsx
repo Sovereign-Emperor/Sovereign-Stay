@@ -9,6 +9,7 @@ import BookingRequestPanel from "../components/BookingRequestPanel";
 import { isExplicitSupabaseMode } from "../data/supabaseClient";
 import { useListingById } from "../hooks/useListings";
 import { formatPrice } from "../utils/format";
+import { getPropertyMapDetails } from "../utils/propertyMapLocation";
 
 const pricePeriodLabel = (period) => ({
   monthly: "month",
@@ -43,6 +44,7 @@ export default function PropertyPage() {
 
   const photoIndex = activePhoto === null ? -1 : activePhoto;
   const showPhoto = (index) => setActivePhoto((index + property.photos.length) % property.photos.length);
+  const mapDetails = getPropertyMapDetails(property);
 
   return (
     <main className="property-page">
@@ -116,8 +118,8 @@ export default function PropertyPage() {
               <p className="eyebrow">THE NEIGHBOURHOOD</p><h3>Easy to find your way.</h3>
               <p className="detail-description"><MapPin size={16} />{property.location}{Number.isFinite(property.distanceKm) && <> <span>·</span> approximately {property.distanceKm} km from KTU</>}</p>
               {property.property && <p className="detail-description">{[property.property.address, property.property.area, property.property.city, property.property.region].filter(Boolean).join(", ")}</p>}
-              <a className="map-placeholder" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.location}, Koforidua, Ghana`)}`} target="_blank" rel="noreferrer">
-                <span className="map-grid-pattern" /><span className="map-pin"><MapPin size={20} fill="currentColor" /></span><span className="map-label">{property.area}<small>Koforidua, Ghana</small></span><span className="map-open">Open map <ArrowUpRight size={14} /></span>
+              <a className="map-placeholder" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapDetails.query)}`} target="_blank" rel="noreferrer">
+                <span className="map-grid-pattern" /><span className="map-pin"><MapPin size={20} fill="currentColor" /></span><span className="map-label">{mapDetails.areaLabel}<small>{mapDetails.regionLabel}</small></span><span className="map-open">Open map <ArrowUpRight size={14} /></span>
               </a>
               <p className="demo-map-note">Approximate area shown. Open the map to explore the neighbourhood.</p>
             </section>
