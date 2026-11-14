@@ -99,6 +99,12 @@ against that schema before the routes can work. Authentication requires email
 provider configuration and email delivery in the Supabase dashboard.
 Configure the allowed redirect URLs for `/auth/callback` and `/auth/reset`.
 
+The linked project currently has email confirmation disabled as a temporary
+measure. New accounts are therefore treated as email-confirmed without
+proving mailbox ownership, and may sign in immediately. This is not a
+recommended long-term production setting; re-enable confirmation after
+custom SMTP is configured and tested.
+
 The built-in Supabase email service is intended for development, currently
 limits sending to 2 messages per hour, and may only deliver to project-team
 addresses. Public signup and password recovery require a custom SMTP provider.

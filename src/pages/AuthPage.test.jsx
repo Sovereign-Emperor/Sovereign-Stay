@@ -52,4 +52,37 @@ describe("AuthPage", () => {
     );
     expect(authService.registerWithEmail).toHaveBeenCalledOnce();
   });
+
+  it("sends an immediately signed-in provider to provider onboarding", async () => {
+    authService.registerWithEmail.mockResolvedValue({
+      user: { id: "provider-user" },
+      session: { access_token: "test-session" },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/auth/register"]}>
+        <Routes>
+          <Route path="/auth/:mode" element={<AuthPage />} />
+          <Route path="/provider/onboarding" element={<h1>Provider onboarding</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Example Provider" },
+    });
+    fireEvent.change(screen.getByLabelText("I am joining as"), {
+      target: { value: "provider" },
+    });
+    fireEvent.change(screen.getByLabelText("Email address"), {
+      target: { value: "provider@example.test" },
+    });
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "A-long-demo-password-123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(await screen.findByRole("heading", { name: "Provider onboarding" })).toBeInTheDocument();
+    expect(authService.registerWithEmail).toHaveBeenCalledOnce();
+  });
 });

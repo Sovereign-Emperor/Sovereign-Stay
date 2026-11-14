@@ -83,10 +83,14 @@ export default function AuthPage() {
       if (activeMode === "register") {
         const result = await registerWithEmail(values);
         if (values.accountType === "provider") {
-          setNotice("Check your email to verify your account, then sign in and complete provider onboarding. Provider access is granted only by the secure onboarding function.");
+          if (result.session) {
+            navigate("/provider/onboarding", { replace: true });
+          } else {
+            setNotice("Check your email to verify your account, then sign in and complete provider onboarding. Provider access is granted only by the secure onboarding function.");
+          }
         } else {
           setNotice(result.session
-            ? "Your student account was created."
+            ? "Your student account was created, and you are signed in."
             : "Check your email to verify your account before signing in.");
         }
       } else if (activeMode === "login") {
