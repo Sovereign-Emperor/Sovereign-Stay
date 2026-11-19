@@ -43,6 +43,10 @@ The schema history currently contains:
   retired room offers while allowing their managing providers to retain access.
 - `20261106000100_review_authorization_hardening.sql` — requires active student
   accounts to own the completed booking for a new review.
+- `20261114000100_provider_listing_edit.sql` — returns a published listing to
+  draft, with an audit record, before a provider changes it.
+- `20261119000100_public_discovery_search.sql` — provides bounded, server-side
+  public discovery filtering, sorting, and pagination.
 
 Do not edit applied migrations. Create a new migration for later changes and
 review it locally before any remote push. This repository has no production

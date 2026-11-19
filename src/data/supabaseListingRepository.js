@@ -113,27 +113,26 @@ function mapListing(record, photos) {
   };
 }
 
-async function getPublishedListingRecords() {
+async function getPublishedListingRecords({ filters = {}, sortBy = "recommended", page = 1, pageSize = 12 } = {}) {
   const client = await getSupabaseClient();
   if (!client) throw new Error("Supabase listing access is not configured.");
-
-  const records = [];
-  const pageSize = 100;
-  for (let start = 0; start < 1000; start += pageSize) {
-    const { data, error } = await client
-      .from("listings")
-      .select(LISTING_SELECT, { count: "exact" })
-      .eq("status", "published")
-      .order("updated_at", { ascending: false })
-      .range(start, start + pageSize - 1);
-    if (error) throw error;
-    records.push(...(data ?? []));
-    if ((data?.length ?? 0) < pageSize) break;
-    if (start + pageSize >= 1000) {
-      throw new Error("Discovery reached its 1,000-listing safety limit. Narrow the search or contact support.");
-    }
-  }
-  return { client, records };
+  const { data: matches, error: matchError } = await client.rpc("search_public_listings", {
+    p_filters: filters,
+    p_sort_by: sortBy,
+    p_page: page,
+    p_page_size: pageSize,
+  });
+  if (matchError) throw matchError;
+  const ids = (matches ?? []).map(({ listing_id }) => listing_id);
+  if (!ids.length) return { client, records: [], total: 0 };
+  const { data: records, error } = await client.from("listings").select(LISTING_SELECT).in("id", ids);
+  if (error) throw error;
+  const recordsById = new Map((records ?? []).map((record) => [record.id, record]));
+  return {
+    client,
+    records: ids.map((id) => recordsById.get(id)).filter(Boolean),
+    total: Number(matches[0]?.total_count ?? 0),
+  };
 }
 
 async function signListingPhotos(client, records, { coverOnly = false } = {}) {
@@ -163,21 +162,14 @@ async function signListingPhotos(client, records, { coverOnly = false } = {}) {
   return signed;
 }
 
-async function mapPublishedListings({ coverOnly = false } = {}) {
-  const { client, records } = await getPublishedListingRecords();
+async function mapPublishedListings({ coverOnly = false, filters, sortBy, page, pageSize } = {}) {
+  const { client, records, total } = await getPublishedListingRecords({ filters, sortBy, page, pageSize });
   const photos = await signListingPhotos(client, records, { coverOnly });
-  return records.map((record) => mapListing(record, photos));
+  return { items: records.map((record) => mapListing(record, photos)), total };
 }
 
 export async function searchSupabaseListings({ filters = {}, sortBy = "recommended", page = 1, pageSize = 12 }) {
-  const listings = await mapPublishedListings({ coverOnly: true });
-  const matching = filterProperties(listings, filters);
-  if (sortBy === "price-low") matching.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
-  if (sortBy === "price-high") matching.sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity));
-  if (sortBy === "nearest") matching.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
-  const total = matching.length;
-  const items = matching.slice((page - 1) * pageSize, page * pageSize);
-  return { items, total };
+  return mapPublishedListings({ coverOnly: true, filters, sortBy, page, pageSize });
 }
 
 export async function getSupabaseListingById(id) {
@@ -196,17 +188,11 @@ export async function getSupabaseListingById(id) {
 }
 
 export async function getSupabaseListingFilterOptions() {
-  const listings = await mapPublishedListings({ coverOnly: true });
-  const unique = (values) => [...new Set(values.filter(Boolean))].sort();
-  return {
-    totalListings: listings.length,
-    schools: unique(listings.map(({ school }) => school)),
-    areas: unique(listings.map(({ area }) => area)),
-    roomTypes: unique(listings.map(({ roomType }) => roomType)),
-    propertyTypes: unique(listings.map(({ type }) => type)),
-    availabilityStatuses: unique(listings.map(({ availabilityStatus }) => availabilityStatus)),
-    facilities: unique(listings.flatMap(({ facilities }) => facilities)),
-  };
+  const client = await getSupabaseClient();
+  if (!client) throw new Error("Supabase listing access is not configured.");
+  const { data, error } = await client.rpc("public_listing_filter_options");
+  if (error) throw error;
+  return data;
 }
 
 export function filterSupabaseListings(listings, filters) {

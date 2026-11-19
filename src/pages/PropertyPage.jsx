@@ -6,6 +6,7 @@ import ListingImage from "../components/ListingImage";
 import PhotoGallery from "../components/PhotoGallery";
 import WhatsAppLink from "../components/WhatsAppLink";
 import BookingRequestPanel from "../components/BookingRequestPanel";
+import ListingReportForm from "../components/ListingReportForm";
 import { isExplicitSupabaseMode } from "../data/supabaseClient";
 import { useListingById } from "../hooks/useListings";
 import { formatPrice } from "../utils/format";
@@ -131,6 +132,7 @@ export default function PropertyPage() {
             <div className="availability-box"><span className="availability-indicator" /><span><strong>{property.availabilityStatus === "unknown" ? "Availability not confirmed" : property.availabilityStatus}</strong><small>Not real-time or verified</small></span></div>
             {isExplicitSupabaseMode && !property.isDemo && <BookingRequestPanel listing={property} />}
             <ListingEnquiryForm listingId={property.id} listingName={property.name} />
+            {isExplicitSupabaseMode && !property.isDemo && <ListingReportForm listingId={property.id} />}
             {property.isDemo && <WhatsAppLink propertyName={property.name} className="listing-whatsapp-link">Ask about real options</WhatsAppLink>}
             {property.isDemo && <div className="listing-updated"><Clock3 size={14} /> Local demo listing<span>NOT VERIFIED</span></div>}
           </aside>

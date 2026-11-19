@@ -166,6 +166,14 @@ The additive `20261114000100_provider_listing_edit.sql` migration adds a
 server-authorized, audit-logged workflow for returning published listings to
 draft before provider edits.
 
+The additive `20261119000100_public_discovery_search.sql` moves public listing
+filtering, sorting and pagination into bounded Supabase RPCs, so discovery does
+not download the entire marketplace catalogue or sign every listing image.
+
+**Current media scope:** secure image upload is implemented. Video upload and
+delivery are intentionally not enabled until a server-side transcoding,
+malware-scanning, storage-cost and moderation workflow is deployed and tested.
+
 **Not production-ready:** no Supabase project is linked, migrations and RLS
 have not been run, and no email delivery, Paystack sandbox webhook, monitoring,
 hosting target, or domain have been configured. Do not use live payments.

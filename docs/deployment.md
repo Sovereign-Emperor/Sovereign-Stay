@@ -41,6 +41,8 @@ project first:
 5. `20261105000100_security_validation_completion.sql`
 6. `20261106000100_review_authorization_hardening.sql`
 7. `20261113000100_listing_facilities_anon_policy_fix.sql`
+8. `20261114000100_provider_listing_edit.sql`
+9. `20261119000100_public_discovery_search.sql`
 
 Do not edit applied migration history. Before migration 004, check for duplicate
 non-null `payments.gateway_transaction_id` values using the preflight query in
